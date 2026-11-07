@@ -27,6 +27,9 @@
     <category>Video</category>
   </categories>
   <releases>
+    <release version="0.3.1" date="2026-11-07">
+      <description><p>A new Recordings page lists a day's recordings from every camera, filterable by camera, with a download button that shows progress and can save to a folder of your choice.</p></description>
+    </release>
     <release version="0.3.0" date="2026-11-07">
       <description><p>Smooth live view: a per-pane Smooth button (on by default) shows frames on the camera's clock behind a small adaptive delay of at most 0.3 s, removing the freezes and catch-up skips caused by bursty delivery. The interface now scales with the desktop font size. Live and playback streams stop while the window is hidden in the tray. Timeline clicks snap to nearby recordings, and events show their actual time. Fixes a CPU spin when a Baichuan connection drops, and streams are now torn down cleanly on stop and quit.</p></description>
     </release>
