@@ -23,6 +23,11 @@ While the project is pre-1.0, minor versions may still change behaviour.
   (monitoring, events and notifications carry on) and Live View resumes when
   it's reopened — about 3% CPU hidden instead of 25% with four cameras.
   Ported from upstream PR #23 by greenfanDev.
+- **A dropped Baichuan connection pinned a CPU core.** When a camera or hub
+  closed the connection, the HD stream's network loop spun at 100% CPU and
+  the pane froze on its last frame. The stream now ends, and HD panes and
+  pop-outs reconnect after 3 s; a silent live stream is closed after 15 s.
+  Ported from upstream PR #15 by greenfanDev.
 
 ## [0.2.0] — 2026-11-07
 
