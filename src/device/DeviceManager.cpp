@@ -764,14 +764,16 @@ void DeviceManager::validateAsync(qint64 hostId, const QString &newPassword, boo
 
         auto client = std::make_shared<ReolinkHttpClient>(rec.addr, rec.port, rec.https,
                                                           rec.username, password);
-        // Phase 1: device info, ch0 encoding, abilities, battery, and the NVR
-        // channel list.
+        // Phase 1: device info, ch0 encoding, abilities and the NVR channel list.
+        // Battery is asked separately, and only of channels whose abilities say
+        // they have one: a Home Hub answers GetBatteryInfo for a mains-powered
+        // camera by stalling ~16 s and then failing, and drops every other reply
+        // in the same batch with it.
         const api::BatchResult b1 = client->call(Json::array({
             api::command(QStringLiteral("GetDevInfo")),
             api::command(QStringLiteral("GetEnc"), Json{{"channel", 0}}, 1),
             api::command(QStringLiteral("GetAbility"),
                          Json{{"User", {{"userName", rec.username.toStdString()}}}}),
-            api::command(QStringLiteral("GetBatteryInfo"), Json{{"channel", 0}}),
             api::command(QStringLiteral("GetChannelstatus")),
         }));
 
@@ -801,8 +803,6 @@ void DeviceManager::validateAsync(qint64 hostId, const QString &newPassword, boo
                     ch0SubSize = encStreamSize(enc, "subStream");
                 } else if (r.cmd == QLatin1String("GetAbility") && r.ok) {
                     caps = api::parseAbility(r.value);
-                } else if (r.cmd == QLatin1String("GetBatteryInfo") && r.ok) {
-                    v.battery = api::parseBatteryInfo(r.value);
                 } else if (r.cmd == QLatin1String("GetChannelstatus") && r.ok) {
                     channels = api::parseChannelStatus(r.value);
                 }
@@ -838,7 +838,12 @@ void DeviceManager::validateAsync(qint64 hostId, const QString &newPassword, boo
             cr.mainSize = ch0MainSize;
             cr.subSize = ch0SubSize;
             cr.caps = capsFor(0);
-            cr.battery = v.battery;
+            if (cr.caps.battery) {
+                const api::BatchResult bb = client->call(Json::array(
+                    {api::command(QStringLiteral("GetBatteryInfo"), Json{{"channel", 0}})}));
+                if (bb.transportOk && !bb.results.isEmpty() && bb.results.first().ok)
+                    cr.battery = api::parseBatteryInfo(bb.results.first().value);
+            }
             v.talk = cr.caps.talk;
             v.channels.append(cr);
         } else {
@@ -859,27 +864,10 @@ void DeviceManager::validateAsync(qint64 hostId, const QString &newPassword, boo
                 for (const api::ChannelInfo &c : online)
                     cmds.push_back(
                         api::command(QStringLiteral("GetEnc"), Json{{"channel", c.channel}}, 1));
-                for (const api::ChannelInfo &c : online)
-                    cmds.push_back(api::command(QStringLiteral("GetBatteryInfo"),
-                                                   Json{{"channel", c.channel}}));
                 const api::BatchResult b2 = client->call(cmds);
-                int batteryIdx = 0;
                 if (b2.transportOk)
                     for (const api::CommandResult &r : b2.results)
-                        if (r.cmd == QLatin1String("GetBatteryInfo")) {
-                            // Replies come back in request order; prefer the
-                            // channel the device echoes, if it does.
-                            const int k = batteryIdx++;
-                            if (!r.ok)
-                                continue;
-                            const Json bat = r.value.contains("Battery")
-                                                 ? jsonObj(r.value, "Battery")
-                                                 : r.value;
-                            const int ch = jsonInt(
-                                bat, "channel", k < online.size() ? online[k].channel : -1);
-                            if (ch >= 0)
-                                batteryByChannel[ch] = api::parseBatteryInfo(r.value);
-                        } else if (r.cmd == QLatin1String("GetEnc") && r.ok) {
+                        if (r.cmd == QLatin1String("GetEnc") && r.ok) {
                             const Json enc = jsonObj(r.value, "Enc");
                             const int ch = jsonInt(enc, "channel", 0);
                             codecByChannel[ch] = normalizeCodec(QString::fromStdString(
@@ -887,13 +875,46 @@ void DeviceManager::validateAsync(qint64 hostId, const QString &newPassword, boo
                             mainSizeByChannel[ch] = encStreamSize(enc, "mainStream");
                             subSizeByChannel[ch] = encStreamSize(enc, "subStream");
                         }
+
+                // Battery: its own batch, battery-capable channels only (see
+                // phase 1), so a stall here can't cost the codecs above.
+                QVector<int> batteryChannels;
+                Json batCmds = Json::array();
+                for (const api::ChannelInfo &c : online)
+                    if (capsFor(c.channel).battery) {
+                        batteryChannels.append(c.channel);
+                        batCmds.push_back(api::command(QStringLiteral("GetBatteryInfo"),
+                                                       Json{{"channel", c.channel}}));
+                    }
+                if (!batteryChannels.isEmpty()) {
+                    const api::BatchResult b3 = client->call(batCmds);
+                    int k = 0;
+                    if (b3.transportOk)
+                        for (const api::CommandResult &r : b3.results) {
+                            // Replies come back in request order; prefer the
+                            // channel the device echoes, if it does.
+                            const int idx = k++;
+                            if (r.cmd != QLatin1String("GetBatteryInfo") || !r.ok)
+                                continue;
+                            const Json bat = r.value.contains("Battery")
+                                                 ? jsonObj(r.value, "Battery")
+                                                 : r.value;
+                            const int ch = jsonInt(bat, "channel",
+                                                   idx < batteryChannels.size()
+                                                       ? batteryChannels[idx] : -1);
+                            if (ch >= 0)
+                                batteryByChannel[ch] = api::parseBatteryInfo(r.value);
+                        }
+                }
             }
             for (const api::ChannelInfo &c : online) {
                 ChannelResult cr;
                 cr.channel = c.channel;
                 cr.name = c.name;
                 cr.online = true;
-                cr.codec = codecByChannel.value(c.channel, QStringLiteral("h264"));
+                // Unknown stays empty: the stream is then probed rather than
+                // assumed h264, which garbles an HEVC camera.
+                cr.codec = codecByChannel.value(c.channel);
                 cr.mainSize = mainSizeByChannel.value(c.channel);
                 cr.subSize = subSizeByChannel.value(c.channel);
                 cr.uid = c.uid;

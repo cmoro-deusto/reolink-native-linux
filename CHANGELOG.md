@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
+## [Unreleased]
+
+### Fixed
+
+- **A camera without a battery on a Home Hub broke the others.** Adding a
+  mains-powered camera made start-up take ~20 s and left the existing
+  cameras' live view as garbage. The battery fix in 0.2.0 asked every
+  camera for its battery level, and the hub answers that for a camera with
+  no battery by stalling ~16 s, then failing — and drops every other answer
+  in the same request, so no camera's codec was learned and HEVC cameras
+  were decoded as H.264. Battery is now only asked of cameras that report
+  one, in a request of its own, and a codec that can't be learned is
+  detected from the stream instead of assumed H.264.
+
 ## [0.3.1] — 2026-11-07
 
 ### Added

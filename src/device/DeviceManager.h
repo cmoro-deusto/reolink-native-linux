@@ -365,7 +365,6 @@ private:
         bool isAdmin = false;
         bool talk = false;
         QString password;
-        api::BatteryInfo battery;
         std::shared_ptr<ReolinkHttpClient> client;
         QVector<ChannelResult> channels; // one per camera to show
     };
