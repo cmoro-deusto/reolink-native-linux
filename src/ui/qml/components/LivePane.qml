@@ -41,6 +41,9 @@ Rectangle {
     // sensible default (main when big, the saved grid choice otherwise) via
     // onForceMainChanged; the user can still override it with the toggle afterwards.
     property bool gridQualityMain: false // persisted grid choice (set by the page)
+    // Live playout smoothing (StreamPlayer.smoothing): on by default, toggled
+    // from the toolbar's "Smooth" button and remembered per camera by the page.
+    property bool smooth: true
     property bool qualityMain: forceMain || gridQualityMain
     readonly property bool effectiveMain: qualityMain
     onForceMainChanged: qualityMain = forceMain || gridQualityMain
@@ -62,6 +65,7 @@ Rectangle {
     // The SD/HD toggle was flipped while in the grid (not maximized), so the
     // page can remember it for this camera.
     signal gridQualityToggled(bool main)
+    signal smoothToggled(bool on)
     // A camera was dropped onto this pane — from the sidebar or another pane.
     signal cameraDropped(int pane, int row)
 
@@ -190,6 +194,7 @@ Rectangle {
     StreamPlayer {
         id: player
         videoSink: video.videoSink
+        smoothing: root.smooth
     }
 
     Component.onDestruction: player.stop()
@@ -458,10 +463,13 @@ Rectangle {
                 property bool active: false
                 property bool enabledTool: true
                 signal activated()
-                width: Theme.px(28); height: Theme.px(28); radius: Theme.px(4)
+                // Square for a glyph; wider when the label is a word.
+                width: Math.max(Theme.px(28), glyphText.implicitWidth + Theme.px(8))
+                height: Theme.px(28); radius: Theme.px(4)
                 visible: enabledTool
                 color: active ? Theme.accentDim : (hover.hovered ? Theme.surfaceAlt : "transparent")
                 Text {
+                    id: glyphText
                     anchors.centerIn: parent
                     text: parent.glyph
                     color: parent.active ? Theme.text : Theme.textMuted
@@ -494,6 +502,18 @@ Rectangle {
                     root.qualityMain = !root.qualityMain;
                     if (!root.forceMain)
                         root.gridQualityToggled(root.qualityMain);
+                }
+            }
+            // Playout smoothing: steady frame pacing behind a small delay.
+            ToolButton {
+                glyph: qsTr("Smooth")
+                active: root.smooth
+                tip: root.smooth
+                     ? qsTr("Smooth: on — evens out network stutter (adds a little delay). Click to turn off")
+                     : qsTr("Smooth: off — lowest delay, frames shown as they arrive. Click to turn on")
+                onActivated: {
+                    root.smooth = !root.smooth;
+                    root.smoothToggled(root.smooth);
                 }
             }
             ToolButton {

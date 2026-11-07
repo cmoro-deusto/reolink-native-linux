@@ -41,6 +41,12 @@ class StreamPlayer : public QObject
     Q_PROPERTY(bool loop READ loop WRITE setLoop NOTIFY loopChanged)
     Q_PROPERTY(bool retryOnError READ retryOnError WRITE setRetryOnError NOTIFY retryOnErrorChanged)
     Q_PROPERTY(bool recording READ recording NOTIFY recordingChanged)
+    // Live playout smoothing (default on): present live frames on the device's
+    // clock behind a small adaptive delay instead of the moment they arrive, so
+    // bursty delivery doesn't show as freezes and catch-up skips. Adds latency
+    // (0.15 s to start, at most 0.3 s). Takes effect immediately; no effect
+    // on file/recorded playback, which is paced already.
+    Q_PROPERTY(bool smoothing READ smoothing WRITE setSmoothing NOTIFY smoothingChanged)
 
 public:
     enum class State { Idle, Connecting, Streaming, Error, Stopped };
@@ -59,6 +65,11 @@ public:
         // forcedFormat is the libavformat demuxer name ("h264"/"hevc").
         std::function<int(unsigned char *, int)> readPacket;
         QString forcedFormat;
+        // A raw elementary stream carries no timestamps, so a packet source can
+        // hand back the device time (µs) of each frame, in decode order, for
+        // live smoothing. Optional; returns false when none is queued.
+        std::function<bool(qint64 *)> frameTime;
+        std::atomic<bool> smoothing{true};
 
         // Retry on connection error even for non-live sources (playback FLV on a
         // connection-limited NVR often needs a couple of attempts).
@@ -95,8 +106,10 @@ public:
     // to end); `format` is the demuxer ("h264"/"hevc"); `onStop` is invoked on
     // stop()/destruction to unblock and tear down the source. Set before start();
     // cleared by setSource(). Not a QML API.
+    // `frameTime` (optional) supplies each frame's device time for smoothing.
     void setPacketSource(std::function<int(unsigned char *, int)> reader, const QString &format,
-                         std::function<void()> onStop);
+                         std::function<void()> onStop,
+                         std::function<bool(qint64 *)> frameTime = {});
 
     QVideoSink *videoSink() const;
     void setVideoSink(QVideoSink *sink);
@@ -110,6 +123,9 @@ public:
 
     bool retryOnError() const { return m_retryOnError; }
     void setRetryOnError(bool v);
+
+    bool smoothing() const { return m_smoothing; }
+    void setSmoothing(bool on);
 
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
@@ -139,6 +155,7 @@ signals:
     void framesDecodedChanged();
     void loopChanged();
     void retryOnErrorChanged();
+    void smoothingChanged();
     void recordingChanged();
     void recordingSaved(const QString &path);
     void recordingFailed(const QString &error);
@@ -151,6 +168,7 @@ private:
     std::function<int(unsigned char *, int)> m_pendingReader;
     QString m_pendingFormat;
     std::function<void()> m_pendingStop; // teardown for the not-yet-started source
+    std::function<bool(qint64 *)> m_pendingFrameTime;
     std::function<void()> m_activeStop;  // teardown for the running session's source
     bool m_loop = false;
 
@@ -158,6 +176,7 @@ private:
     QString m_errorString;
     bool m_recording = false;
     bool m_retryOnError = false;
+    bool m_smoothing = true;
 
     // Set via QML before start(); copied into each new Session. Survives stop().
     QPointer<QVideoSink> m_pendingSink;

@@ -4,6 +4,7 @@
 
 #include <QByteArray>
 #include <QMutex>
+#include <QQueue>
 #include <QString>
 #include <QWaitCondition>
 
@@ -69,6 +70,12 @@ public:
     // Returns the number of bytes written, 0 on clean end, or <0 on abort/error.
     int read(unsigned char *buf, int size);
 
+    // Device time (µs, monotonic across the 32-bit wrap) of the next frame that
+    // read() has handed out or will hand out, in order: the raw elementary stream
+    // carries no timestamps, so the player takes them from here for live
+    // smoothing. False when none is queued.
+    bool popFrameTime(qint64 *us);
+
     // "h264" / "hevc" once known (after the first frame); empty until then.
     QString ffmpegFormat();
 
@@ -78,7 +85,7 @@ private:
     bool startStream(QTcpSocket &sock, const QByteArray &aesKey);
     void sendPlayback(QTcpSocket &sock, const QByteArray &aesKey, qint64 startEpoch);
     void pumpMedia(QTcpSocket &sock, const QByteArray &aesKey, quint16 streamMsgNum);
-    void pushAnnexB(const QByteArray &bytes);
+    void pushAnnexB(const QByteArray &bytes, quint32 micros);
 
     Params m_p;
     std::thread m_thread;
@@ -87,6 +94,9 @@ private:
     QMutex m_mutex;
     QWaitCondition m_cond;
     QByteArray m_ring;        // decoded Annex-B awaiting the reader
+    QQueue<qint64> m_frameTimes; // device time of each frame in m_ring/handed out
+    quint32 m_lastMicros = 0;    // worker-only: unwraps the 32-bit µs clock
+    qint64 m_microsTotal = -1;
     bool m_finished = false;  // worker done producing
     qint64 m_seekEpoch = 0;   // pending in-place seek target (0 = none)
     QString m_format;         // "h264"/"hevc", guarded by m_mutex

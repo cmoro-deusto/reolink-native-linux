@@ -700,7 +700,8 @@ Item {
 
                 // Retry on connection error: NVRs are connection-limited and may
                 // momentarily refuse the playback stream.
-                StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true }
+                // Recorded playback is paced already; live smoothing doesn't apply.
+                StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true; smoothing: false }
 
                 Column {
                     anchors.centerIn: parent

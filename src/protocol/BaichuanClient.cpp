@@ -168,8 +168,21 @@ int BaichuanClient::read(unsigned char *buf, int size)
     return n;
 }
 
-void BaichuanClient::pushAnnexB(const QByteArray &bytes)
+bool BaichuanClient::popFrameTime(qint64 *us)
 {
+    QMutexLocker lock(&m_mutex);
+    if (m_frameTimes.isEmpty())
+        return false;
+    *us = m_frameTimes.dequeue();
+    return true;
+}
+
+void BaichuanClient::pushAnnexB(const QByteArray &bytes, quint32 micros)
+{
+    // Unwrap the device's 32-bit microsecond clock (~71 min) into a monotonic
+    // 64-bit time; unsigned subtraction carries across the wrap.
+    m_microsTotal = m_microsTotal < 0 ? micros : m_microsTotal + quint32(micros - m_lastMicros);
+    m_lastMicros = micros;
     QMutexLocker lock(&m_mutex);
     // Backpressure: block the producer if the reader falls far behind.
     while (m_ring.size() > kMaxRing && !m_abort.load())
@@ -177,6 +190,9 @@ void BaichuanClient::pushAnnexB(const QByteArray &bytes)
     if (m_abort.load())
         return;
     m_ring.append(bytes);
+    m_frameTimes.enqueue(m_microsTotal);
+    while (m_frameTimes.size() > 1000) // nobody popping: keep it bounded
+        m_frameTimes.dequeue();
     m_cond.wakeAll();
 }
 
@@ -374,7 +390,7 @@ void BaichuanClient::pumpMedia(QTcpSocket &sock, const QByteArray &aesKey, quint
         if (m_p.onVideo)
             m_p.onVideo(f);
         else
-            pushAnnexB(f.annexB);
+            pushAnnexB(f.annexB, f.microseconds);
     };
 
     QByteArray netBuf = m_streamTail;
@@ -408,6 +424,7 @@ void BaichuanClient::pumpMedia(QTcpSocket &sock, const QByteArray &aesKey, quint
             firstMicros = 0;
             QMutexLocker lock(&m_mutex);
             m_ring.clear(); // drop queued old-position frames so playback jumps
+            m_frameTimes.clear();
             m_cond.wakeAll();
         }
         if (!parseMessage(netBuf, m)) {

@@ -100,6 +100,7 @@ Item {
         property string arrangement: ""
         property alias preset: page.preset
         property string hdCameras: "" // comma-separated "hostId:channel"
+        property string unsmoothCameras: "" // cameras with Smooth turned off
     }
     property bool layoutRestored: false
 
@@ -111,6 +112,20 @@ Item {
     function isHd(row) {
         var key = cameraKey(row);
         return key !== "" && layoutStore.hdCameras.split(",").indexOf(key) >= 0;
+    }
+    // Smooth defaults on, so only the cameras it's switched off for are stored.
+    function isSmooth(row) {
+        var key = cameraKey(row);
+        return key === "" || layoutStore.unsmoothCameras.split(",").indexOf(key) < 0;
+    }
+    function setSmooth(row, on) {
+        var key = cameraKey(row);
+        if (key === "")
+            return;
+        var keys = layoutStore.unsmoothCameras.split(",").filter(k => k !== "" && k !== key);
+        if (!on)
+            keys.push(key);
+        layoutStore.unsmoothCameras = keys.join(",");
     }
     function setHd(row, hd) {
         var key = cameraKey(row);
@@ -360,6 +375,8 @@ Item {
                     forceMain: isMaximized
                     gridQualityMain: page.isHd(index)
                     onGridQualityToggled: (hd) => page.setHd(index, hd)
+                    smooth: page.isSmooth(index)
+                    onSmoothToggled: (on) => page.setSmooth(index, on)
                     capPtz: hasPtz
                     capZoom: hasZoom
                     capAudio: hasAudio

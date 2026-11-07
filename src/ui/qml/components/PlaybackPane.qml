@@ -150,7 +150,8 @@ Rectangle {
 
     // Retry on connection error: NVRs are connection-limited and may
     // momentarily refuse a playback stream while others are opening.
-    StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true }
+    // Recorded playback is paced already; live smoothing doesn't apply.
+    StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true; smoothing: false }
     Component.onDestruction: player.stop()
 
     // ---- Video with digital zoom (same interaction as a live pane) --------

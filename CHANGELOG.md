@@ -8,6 +8,18 @@ While the project is pre-1.0, minor versions may still change behaviour.
 
 ## [Unreleased]
 
+### Added
+
+- **Smooth live view** — a "Smooth" button on every live pane, on by default
+  and remembered per camera. Frames were never lost, but they arrived in
+  bursts (on a Home Hub Pro every HD keyframe came 220–300 ms late, and the
+  SD stream stalled for up to ~0.6 s), which showed as a freeze followed by a
+  rush of catch-up frames. With Smooth on, frames are shown on the camera's
+  own clock behind a small delay that adapts to how late they arrive: it
+  starts at 0.15 s and never exceeds 0.3 s. Measured on the hub, gaps over
+  100 ms dropped from 72 to 2 in HD and from 40 to 1 in SD. Turn it off for
+  the lowest delay.
+
 ### Fixed
 
 - **The interface ignored the desktop's font size.** Every text size and most

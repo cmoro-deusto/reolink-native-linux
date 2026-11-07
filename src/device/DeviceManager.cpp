@@ -1493,7 +1493,8 @@ void DeviceManager::startBaichuan(int row, qint64 startEpoch, StreamPlayer *play
     player->setPacketSource(
         [client](unsigned char *buf, int size) { return client->read(buf, size); },
         format,
-        [client] { client->stop(); });
+        [client] { client->stop(); },
+        [client](qint64 *us) { return client->popFrameTime(us); });
     player->start();
 }
 

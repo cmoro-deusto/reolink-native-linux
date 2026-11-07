@@ -6,12 +6,14 @@
 #include <QDateTime>
 #include <QDeadlineTimer>
 #include <QThread>
+#include <QTimer>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QVideoFrame>
 #include <QVideoFrameFormat>
 
 #include <cmath>
+#include <limits>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -187,7 +189,11 @@ void postFramesTick(const std::shared_ptr<Session> &s)
 
 // Deliver a decoded frame to the QML-owned sink, on the GUI thread where the sink
 // lives and is destroyed (finding: cross-thread sink teardown race).
-void deliverFrame(const std::shared_ptr<Session> &s, const QVideoFrame &frame)
+// presentAtUs (av_gettime_relative clock, 0 = now) schedules the frame for
+// later on the GUI thread — the live playout buffer — so the decode worker
+// never sleeps and keeps measuring true arrival times.
+void deliverFrame(const std::shared_ptr<Session> &s, const QVideoFrame &frame,
+                  qint64 presentAtUs = 0)
 {
     QMutexLocker lock(&s->backMutex);
     if (!s->player)
@@ -195,10 +201,19 @@ void deliverFrame(const std::shared_ptr<Session> &s, const QVideoFrame &frame)
     StreamPlayer *p = s->player;
     QMetaObject::invokeMethod(
         p,
-        [s, frame] {
-            QMutexLocker sinkLock(&s->sinkMutex);
-            if (s->sink)
-                s->sink->setVideoFrame(frame);
+        [s, frame, presentAtUs, p] {
+            auto show = [s, frame] {
+                if (s->abort.load()) // stopped meanwhile: don't paint a stale frame
+                    return;
+                QMutexLocker sinkLock(&s->sinkMutex);
+                if (s->sink)
+                    s->sink->setVideoFrame(frame);
+            };
+            const qint64 waitUs = presentAtUs - av_gettime_relative();
+            if (presentAtUs > 0 && waitUs > 1000)
+                QTimer::singleShot(int((waitUs + 500) / 1000), Qt::PreciseTimer, p, show);
+            else
+                show();
         },
         Qt::QueuedConnection);
 }
@@ -325,10 +340,81 @@ void abortableSleepUs(Session *s, qint64 waitUs)
         av_usleep(static_cast<unsigned>(qMin<qint64>(remaining, 10000)));
 }
 
+// Adaptive playout buffer for live sources. Frames are presented on the
+// device's clock behind a delay instead of the moment they arrive: measured on
+// a Home Hub Pro, frames were never lost but arrived in bursts (each 260 KB HD
+// keyframe 220-300 ms late, RTSP stalls up to ~0.6 s), which showed as a
+// freeze followed by a rush of catch-up frames.
+//
+// The clock is anchored on the live edge: the smallest (arrival - source time)
+// seen, i.e. the frame that came in most promptly. A start-up backlog (the hub
+// replays ~5 s of buffered frames on connect) therefore plays through quickly
+// instead of leaving the stream seconds behind, and only genuine lateness is
+// absorbed. A frame later than its slot grows the delay just enough to cover
+// it (capped); a stream that stays well ahead of its slots for a window gives
+// half the spare back. The anchor is re-taken per window, so slow drift between
+// the device's clock and ours can't accumulate. Nothing is dropped: past the
+// cap, late frames are shown as soon as they arrive.
+struct Playout {
+    static constexpr qint64 kStartDelayUs = 150000;
+    static constexpr qint64 kMaxDelayUs = 300000; // latency ceiling: past it, hitch instead
+    static constexpr qint64 kMarginUs = 20000;
+    static constexpr qint64 kJumpUs = 5000000; // source-clock jump = discontinuity
+    static constexpr int kWindowFrames = 150;  // ~10 s at 15 fps
+    static constexpr qint64 kNone = std::numeric_limits<qint64>::max();
+
+    bool started = false;
+    qint64 lastSrcUs = 0;
+    qint64 anchorUs = 0;      // live edge: min(arrival - source) in effect
+    qint64 windowAnchorUs = kNone;
+    qint64 delayUs = kStartDelayUs;
+    qint64 minSlackUs = kNone;
+    int windowFrames = 0;
+
+    void reset() { started = false; }
+
+    // How long (µs) to wait before presenting a frame with source time srcUs.
+    qint64 wait(qint64 srcUs, qint64 nowUs)
+    {
+        const qint64 offset = nowUs - srcUs;
+        if (!started || srcUs < lastSrcUs || srcUs - lastSrcUs > kJumpUs) {
+            // First frame, or the source clock jumped (reconnect, seek): re-anchor,
+            // keeping the delay learned so far.
+            started = true;
+            anchorUs = offset;
+            windowAnchorUs = kNone;
+            minSlackUs = kNone;
+            windowFrames = 0;
+        }
+        lastSrcUs = srcUs;
+        anchorUs = qMin(anchorUs, offset);
+        windowAnchorUs = qMin(windowAnchorUs, offset);
+
+        qint64 slack = srcUs + anchorUs + delayUs - nowUs;
+        if (slack < 0) {
+            delayUs = qMin(kMaxDelayUs, delayUs - slack + kMarginUs);
+            slack = qMax<qint64>(0, srcUs + anchorUs + delayUs - nowUs);
+            minSlackUs = kNone; // a late frame resets the shrink window
+        } else {
+            minSlackUs = qMin(minSlackUs, slack);
+        }
+        if (++windowFrames >= kWindowFrames) {
+            if (minSlackUs != kNone && minSlackUs > 2 * kMarginUs)
+                delayUs = qMax<qint64>(0, delayUs - (minSlackUs - kMarginUs) / 2);
+            anchorUs = windowAnchorUs; // follow clock drift either way
+            windowAnchorUs = kNone;
+            minSlackUs = kNone;
+            windowFrames = 0;
+        }
+        return slack;
+    }
+};
+
 // Convert one AVFrame to a QVideoFrame and hand it to the sink. Returns false on
 // an unrecoverable mapping failure (frame dropped).
 bool emitFrame(const std::shared_ptr<Session> &s, AVFrame *out,
-               QVideoFrameFormat::PixelFormat outFormat, QtVideo::Rotation rotation)
+               QVideoFrameFormat::PixelFormat outFormat, QtVideo::Rotation rotation,
+               qint64 presentAtUs = 0)
 {
     QVideoFrameFormat format(QSize(out->width, out->height), outFormat);
     // Full-range (JPEG) YUV must be tagged or the sink renders it as limited range.
@@ -353,7 +439,7 @@ bool emitFrame(const std::shared_ptr<Session> &s, AVFrame *out,
                    out->data[plane] + y * out->linesize[plane], static_cast<size_t>(rowBytes));
     }
     videoFrame.unmap();
-    deliverFrame(s, videoFrame);
+    deliverFrame(s, videoFrame, presentAtUs);
     return true;
 }
 
@@ -603,6 +689,9 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
     bool streaming = *streamingOut;
     qint64 playbackStartUs = 0;
     qint64 firstPtsUs = AV_NOPTS_VALUE;
+    Playout playout;
+    qint64 loggedDelayUs = 0;
+    qint64 lastPresentAtUs = 0;
 
     // Drain one decoded frame at a time; shared by the normal and flush paths.
     auto receiveFrames = [&]() {
@@ -668,7 +757,37 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
                     abortableSleepUs(s.get(), waitUs);
             }
 
-            if (emitFrame(s, out, outFormat, rotation)) {
+            // Live playout smoothing. A packet source's frame times are taken for
+            // every frame, smoothing on or off, so they stay in step with decode.
+            qint64 presentAtUs = 0;
+            if (live) {
+                qint64 srcUs = AV_NOPTS_VALUE;
+                if (packetSource) {
+                    qint64 t = 0;
+                    if (s->frameTime && s->frameTime(&t))
+                        srcUs = t;
+                } else if (frame->best_effort_timestamp != AV_NOPTS_VALUE) {
+                    srcUs = av_rescale_q(frame->best_effort_timestamp, stream->time_base,
+                                         AVRational{1, 1000000});
+                }
+                if (s->smoothing.load() && srcUs != static_cast<qint64>(AV_NOPTS_VALUE)) {
+                    const qint64 nowUs = av_gettime_relative();
+                    // Never reorder: a shrinking delay must not schedule a frame
+                    // ahead of the one before it.
+                    presentAtUs = qMax(nowUs + playout.wait(srcUs, nowUs), lastPresentAtUs + 1000);
+                    lastPresentAtUs = presentAtUs;
+                    if (playout.delayUs > loggedDelayUs + 50000) {
+                        loggedDelayUs = playout.delayUs;
+                        qCInfo(lcMedia) << redacted(source) << "playout delay now"
+                                        << playout.delayUs / 1000 << "ms";
+                    }
+                } else {
+                    playout.reset();
+                    lastPresentAtUs = 0;
+                }
+            }
+
+            if (emitFrame(s, out, outFormat, rotation, presentAtUs)) {
                 const qint64 n = s->framesDecoded.fetch_add(1) + 1;
                 if (!streaming) {
                     streaming = true;
@@ -876,6 +995,7 @@ void StreamPlayer::setSource(const QString &source)
     m_pendingReader = nullptr; // URL source supersedes any packet source
     m_pendingFormat.clear();
     m_pendingStop = nullptr;
+    m_pendingFrameTime = nullptr;
     m_source = source;
     emit sourceChanged();
 }
@@ -889,12 +1009,14 @@ void StreamPlayer::setExpectedSize(const QSize &size)
 }
 
 void StreamPlayer::setPacketSource(std::function<int(unsigned char *, int)> reader,
-                                   const QString &format, std::function<void()> onStop)
+                                   const QString &format, std::function<void()> onStop,
+                                   std::function<bool(qint64 *)> frameTime)
 {
     stop();
     m_pendingReader = std::move(reader);
     m_pendingFormat = format;
     m_pendingStop = std::move(onStop);
+    m_pendingFrameTime = std::move(frameTime);
     m_source.clear();
     emit sourceChanged();
 }
@@ -949,6 +1071,16 @@ void StreamPlayer::setRetryOnError(bool v)
     emit retryOnErrorChanged();
 }
 
+void StreamPlayer::setSmoothing(bool on)
+{
+    if (m_smoothing == on)
+        return;
+    m_smoothing = on;
+    if (m_session)
+        m_session->smoothing.store(on);
+    emit smoothingChanged();
+}
+
 void StreamPlayer::start()
 {
     if (m_source.isEmpty() && !m_pendingReader)
@@ -960,6 +1092,8 @@ void StreamPlayer::start()
     s->source = m_source;
     s->readPacket = m_pendingReader;
     s->forcedFormat = m_pendingFormat;
+    s->frameTime = m_pendingFrameTime;
+    s->smoothing.store(m_smoothing);
     s->expectedSize = m_expectedSize;
     s->loop.store(m_loop);
     s->retryOnError.store(m_retryOnError);
