@@ -176,9 +176,13 @@ public:
     // [startEpoch, startEpoch+durationSecs] to a local file, then emit hdClipReady
     // with its path (the file is playable/seekable locally, unlike the FLV path).
     Q_INVOKABLE void requestHdClip(int row, qint64 startEpoch, int durationSecs = 15);
-    // Save a main-stream clip covering [startEpoch, +durationSecs] into
-    // ~/Videos/Reolink with a friendly name. Emits clipExported/clipExportFailed.
+    // Save a main-stream clip of [startEpoch, +durationSecs] into ~/Videos/Reolink
+    // with a friendly name: NvrDownload where the device cuts clips (NVRs), else
+    // cut from a Baichuan replay (Home Hub). Emits clipExported/clipExportFailed.
     Q_INVOKABLE void exportClip(int row, qint64 startEpoch, int durationSecs);
+    // Save the whole recording file that covers atEpoch, as the device stored it
+    // (Download), into ~/Videos/Reolink. Same signals as exportClip.
+    Q_INVOKABLE void exportRecording(int row, qint64 atEpoch);
 
     // Native (Baichuan/TCP 9000) recorded playback: stream the recording from
     // startEpoch straight into `player` — realtime, frame-accurate, full HEVC main.
@@ -359,6 +363,7 @@ private:
     void applyValidation(qint64 hostId, const Validation &v);
     void postValidation(qint64 hostId, const Validation &v); // marshals to GUI thread
     std::shared_ptr<ReolinkHttpClient> clientFor(int row);
+    void postExportResult(int row, const QString &saved, const QString &error); // any thread
 
     Database *m_db;
     CredentialStore *m_credentials;

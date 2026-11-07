@@ -13,6 +13,10 @@ While the project is pre-1.0, minor versions may still change behaviour.
 - **2-pane live grid** — a new layout preset that stacks two cameras one on top
   of the other (1 column × 2 rows), between the 1 and 4 buttons in the Live
   View toolbar.
+- **Export the whole recording** — a new item in Playback's Export menu saves
+  the device's own file for the recording at the playhead, untrimmed. Where
+  the firmware serves no downloads (Home Hub Pro v3.3.0.339) it is rebuilt
+  from a Baichuan replay of the recording's full span instead.
 - **Battery levels refresh while the app runs** — every minute, folded into
   the existing per-host status poll, instead of only at connect/Reconnect.
 - **Live View reopens as you left it** — the grid preset (1/2/4/6/9/16) and
@@ -27,6 +31,11 @@ While the project is pre-1.0, minor versions may still change behaviour.
   connection without replying). When a device refuses FLV that way, SD
   playback now switches to Baichuan for that device — the transport HD
   playback already used.
+- **Clip export on the Home Hub** failed with a bare "clip request failed":
+  the hub refuses NvrDownload, the command NVRs use to cut a clip. Timed
+  exports (15 s – 2 min) now cut the exact range from a Baichuan replay there
+  instead — stream-copied (no re-encode), video plus AAC audio, much faster
+  than realtime. Device rejections now show their error code.
 - **Sidebar battery badge spacing.** The percentage no longer touches the
   battery icon, and badges line up across cameras whether they read 92% or
   100%.

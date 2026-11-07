@@ -368,6 +368,15 @@ Item {
         Devices.exportClip(page.deviceRow, epoch, secs);
     }
 
+    // Export the whole recording at the playhead, as the device stored it.
+    function exportRecording() {
+        var epoch = new Date(page.selYear, page.selMonth - 1, page.selDay).getTime() / 1000
+                    + Math.floor(page.playheadSecs);
+        exportBtn.busy = true;
+        statusText.text = qsTr("Exporting recording…");
+        Devices.exportRecording(page.deviceRow, epoch);
+    }
+
     function openAt(hostId, channel, timestamp) {
         // Event jump targets one specific camera and moment — single-pane flow.
         setPaneCount(1);
@@ -879,6 +888,10 @@ Item {
                         ThemedMenuItem { text: qsTr("30 seconds"); onTriggered: page.exportClip(30) }
                         ThemedMenuItem { text: qsTr("1 minute");  onTriggered: page.exportClip(60) }
                         ThemedMenuItem { text: qsTr("2 minutes"); onTriggered: page.exportClip(120) }
+                        ThemedMenuSeparator {}
+                        // The device's own file for the recording at the playhead,
+                        // untrimmed — exactly as stored, audio included.
+                        ThemedMenuItem { text: qsTr("Whole recording"); onTriggered: page.exportRecording() }
                     }
                 }
                 Item { Layout.fillWidth: true }
