@@ -170,19 +170,25 @@ private slots:
         // talk is per-channel (verified on RLN8-410 firmware).
         const QByteArray body = R"({"Ability":{"p2p":{"ver":1,"permit":6},
             "abilityChn":[
-              {"ptzCtrl":{"ver":4,"permit":6},"ptzPreset":{"ver":1,"permit":6},
+              {"ptzCtrl":{"ver":4,"permit":6},"ptzType":{"ver":2,"permit":6},
+               "ptzPreset":{"ver":1,"permit":6},
                "talk":{"ver":1,"permit":0},
                "supportAiPeople":{"ver":1,"permit":6},"floodLight":{"ver":0,"permit":0}},
               {"ptzCtrl":{"ver":0,"permit":0},"talk":{"ver":0,"permit":0},
-               "battery":{"ver":1,"permit":6}}
+               "battery":{"ver":1,"permit":6}},
+              {"ptzCtrl":{"ver":6,"permit":6},"ptzType":{"ver":3,"permit":6},
+               "ptzPreset":{"ver":1,"permit":6},"supportZoom":{"ver":0,"permit":0}},
+              {"ptzCtrl":{"ver":64,"permit":0},"ptzType":{"ver":0,"permit":0},
+               "battery":{"ver":2,"permit":0}}
             ]}})";
         const Json value = Json::parse(body.constData(), body.constData() + body.size(),
                                        nullptr, false);
         const api::Capabilities caps = api::parseAbility(value);
         QVERIFY(caps.valid);
         QVERIFY(caps.talk); // any channel has talk
-        QCOMPARE(caps.channels.size(), 2);
+        QCOMPARE(caps.channels.size(), 4);
         QVERIFY(caps.channels[0].ptz);
+        QVERIFY(caps.channels[0].zoom); // ptzType 2: pan/tilt/zoom
         QVERIFY(caps.channels[0].ptzPreset);
         QVERIFY(caps.channels[0].talk);
         QVERIFY(caps.channels[0].aiPeople);
@@ -191,6 +197,14 @@ private slots:
         QVERIFY(!caps.channels[1].ptz);
         QVERIFY(!caps.channels[1].talk);
         QVERIFY(caps.channels[1].battery);
+        // ptzType 3: pan/tilt without zoom (Home Hub indoor camera).
+        QVERIFY(caps.channels[2].ptz);
+        QVERIFY(caps.channels[2].ptzPreset);
+        QVERIFY(!caps.channels[2].zoom);
+        QVERIFY(!caps.channels[2].focus);
+        // ptzCtrl without a ptzType (battery camera, no motor): no PTZ at all.
+        QVERIFY(!caps.channels[3].ptz);
+        QVERIFY(!caps.channels[3].zoom);
     }
 
     void parseAbilityAdmin()

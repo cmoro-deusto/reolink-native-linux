@@ -10,7 +10,7 @@ Rectangle {
     property bool showZoom: true
 
     width: Theme.px(120)
-    height: showZoom ? 168 : 120
+    height: showZoom ? Theme.px(168) : Theme.px(120)
     radius: Theme.radius
     color: "#e60d141b"
     border.color: Theme.border

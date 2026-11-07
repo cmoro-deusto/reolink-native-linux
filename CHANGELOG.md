@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
+## [Unreleased]
+
+### Fixed
+
+- **PTZ and zoom controls showed on cameras that can't use them.** Any
+  camera reporting PTZ control got the joystick and the zoom −/+ rocker,
+  so a pan/tilt-only camera had zoom buttons that did nothing, and battery
+  cameras with no motor got a PTZ button. Capabilities now come from the
+  camera's PTZ type, as in reolink_aio: the joystick only for cameras that
+  move, the zoom rocker only for ones with an optical zoom. The PTZ pad
+  also scales with the desktop font now.
+
 ## [0.3.2] — 2026-11-07
 
 ### Fixed

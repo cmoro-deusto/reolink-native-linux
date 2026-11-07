@@ -244,10 +244,17 @@ Capabilities parseAbility(const Json &value)
     const Json chns = jsonArr(ability, "abilityChn");
     for (const Json &chn : chns) {
         ChannelCaps c;
-        c.ptz = capVer(chn, "ptzCtrl") || capVer(chn, "ptzType");
-        c.ptzPreset = capVer(chn, "ptzPreset");
-        c.zoom = capVer(chn, "ptzCtrl") || capVer(chn, "supportPtzZoom");
-        c.focus = capVer(chn, "ptzCtrl") || capVer(chn, "supportPtzFocus");
+        // PTZ comes from ptzType's version, as in reolink_aio: 0 = none, and only
+        // types 1/2/5 have an optical zoom (3 = pan/tilt only, e.g. a Home Hub
+        // indoor camera). ptzCtrl alone says nothing: battery cameras with no
+        // motor report it too (ver 64, ptzType 0).
+        const Json &pt = jsonRef(chn, "ptzType");
+        const int ptzType = pt.is_object() ? jsonInt(pt, "ver", 0)
+                          : (pt.is_number_integer() || pt.is_number_unsigned()) ? pt.get<int>() : 0;
+        c.ptz = ptzType != 0;
+        c.ptzPreset = c.ptz && capVer(chn, "ptzPreset");
+        c.zoom = ptzType == 1 || ptzType == 2 || ptzType == 5 || capVer(chn, "supportPtzZoom");
+        c.focus = c.zoom || capVer(chn, "supportPtzFocus");
         // AI: some firmware exposes supportAi, others per-type flags.
         c.aiPeople = capVer(chn, "supportAiPeople");
         c.aiVehicle = capVer(chn, "supportAiVehicle");
