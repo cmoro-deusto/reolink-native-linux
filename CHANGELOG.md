@@ -39,6 +39,11 @@ While the project is pre-1.0, minor versions may still change behaviour.
   hover time shows "▶ hh:mm", clips are drawn at least 3 px wide, and an
   event jump that lands just before its recording starts at that recording.
   Ported from upstream PR #25 by greenfanDev.
+- **Events showed "just now" forever.** The relative label was computed once
+  per row and never refreshed. Rows now show the actual time on a 24-hour
+  clock — "Today 16:48:19", "Yesterday 09:02:15", "Thu Nov 5, 09:02:15",
+  with the year for older ones — refreshed hourly so Today/Yesterday turn
+  over after midnight. Ported from upstream PR #29 by greenfanDev.
 
 ## [0.2.0] — 2026-11-07
 
