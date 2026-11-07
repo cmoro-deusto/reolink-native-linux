@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("reolink-linux"));
     QCoreApplication::setApplicationName(QStringLiteral("reolink-client"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("0.1.8"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("0.2.0"));
 
     // Give the app a real identity in the taskbar/dock. setDesktopFileName lets
     // Wayland compositors match the window to the installed .desktop file and
@@ -211,10 +211,9 @@ int main(int argc, char *argv[])
     // With the window closed the app lives in the tray; don't exit.
     app.setQuitOnLastWindowClosed(!tray.available());
 
-    // Check GitHub for a newer release shortly after the UI is up (skipped in
-    // the headless screenshot mode). Silent unless an update is found.
-    if (!parser.isSet(smokeOption))
-        QTimer::singleShot(3000, &updater, &rl::Updater::check);
+    // No automatic update check: Updater looks at upstream's GitHub releases,
+    // and this fork is built from source rather than shipped as releases. The
+    // update banner in Main.qml stays hidden because nothing calls check().
 
     // TEST HOOK (local): RL_TEST_NOTIFY=1 fires a synthetic detection through
     // the full pipeline (event inbox -> desktop notification -> click-to-raise)

@@ -1,7 +1,8 @@
 # Reolink Native Linux Client
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/TodesengelX/reolink-native-linux)](../../releases/latest)
+
+> **This is a fork.** Huge thanks to [TodesengelX](https://github.com/TodesengelX), who created [reolink-native-linux](https://github.com/TodesengelX/reolink-native-linux) and did the hard work this builds on: the native Baichuan protocol, the media pipeline, and the whole app. This fork diverges from upstream — it adds Home Hub support (Baichuan playback where there's no HTTP-FLV, exact-length clip export with audio), per-camera battery status, a 2-pane grid, and a remembered layout and quality — and is built from source rather than shipped as releases.
 
 A fully **native Linux desktop client** for Reolink cameras and NVRs — built to work like the official Reolink Client (Windows/macOS/Android): the 1/2/4/6/9/16 live grid, synced multi-camera playback on one timeline, double-click maximize, fullscreen, PTZ, and a full device-settings surface.
 
@@ -9,38 +10,20 @@ A fully **native Linux desktop client** for Reolink cameras and NVRs — built t
 
 > **Status: alpha.** Actively developed against a real RLN8-410 NVR, with community-confirmed setups on an RLC-823S1 standalone camera and a Home Hub Pro. Live view, playback, events, notifications and device settings all work; two-way talk audio and remote/P2P access are still in progress.
 
-Grab the [latest release](../../releases/latest), and see the [changelog](CHANGELOG.md) for what's new. Found a bug? [Issues](../../issues) are read and acted on — recent reports were fixed and released within a day.
+See the [changelog](CHANGELOG.md) for what's new.
 
 ## Install
 
-### AppImage — download and run (no dependencies)
-
-Grab the latest `.AppImage` from the [**Releases**](../../releases) page, then:
-
-```sh
-chmod +x reolink-native-linux-x86_64.AppImage
-./reolink-native-linux-x86_64.AppImage
-```
-
-### Flatpak
-
-Download the `.flatpak` bundle from [Releases](../../releases) and:
-
-```sh
-flatpak install --user ./reolink-native-linux.flatpak
-flatpak run io.github.todesengelx.ReolinkLinux
-```
-
-*(A Flathub listing — `flatpak install flathub io.github.todesengelx.ReolinkLinux` — is planned.)*
-
 ### Arch Linux
 
-Not on the AUR yet — build from the repo's PKGBUILD:
+Build a package from your checkout with the repo's PKGBUILD — it packages the code in the clone as it is (uncommitted changes included), not a downloaded release:
 
 ```sh
-git clone https://github.com/TodesengelX/reolink-native-linux.git
+git clone https://github.com/cmoro-deusto/reolink-native-linux.git
 cd reolink-native-linux/packaging/aur && makepkg -si
 ```
+
+To update later, `git pull` in the clone and run `makepkg -si` again from `packaging/aur`. The package version follows the checkout (e.g. `0.2.0.r3.g1a2b3c4`: last tag, commits since, current commit). Add `--nocheck` to skip the test run.
 
 ### Build from source
 
@@ -61,7 +44,7 @@ Requires Qt 6.5+ (base / declarative / multimedia / shadertools / tools), FFmpeg
 - **Background monitoring** — lives in the system tray with the window closed, so alerts keep arriving; optional start-on-login. Desktop notifications fire for detections (gated on each camera's Push setting) and for cameras or the NVR going offline; clicking one opens the app and plays that event back.
 - **Device tree** — NVR shown as an expandable parent with its cameras nested; right-click for Properties / Settings / Reboot / Remove.
 - **Settings** — Image (brightness/contrast/saturation/sharpness, mirror/flip, day/night), Detection (motion + per-AI-type sensitivity, alerts, and a paint-on-image detection-zone editor), Recording (including a weekly 7×24 schedule grid per recording type), Encoding, Display/OSD, Network, Storage, Users, Time, System. Camera settings run over the native Baichuan protocol, so they don't hit the NVR web server's under-load 502s.
-- **Extras** — battery/solar status for every camera behind an NVR or hub, refreshed every minute, doorbell answer surface, multi-monitor pop-out, fisheye dewarp shader, manual MP4 recording (stream-copy), and a built-in update checker with one-click self-update for the AppImage.
+- **Extras** — battery/solar status for every camera behind an NVR or hub, refreshed every minute, doorbell answer surface, multi-monitor pop-out, fisheye dewarp shader, and manual MP4 recording (stream-copy).
 
 ## How it talks to your devices
 

@@ -6,7 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
-## [Unreleased]
+## [0.2.0] — 2026-11-07
+
+First release of this fork (see the README); it diverges from upstream from here on.
 
 ### Added
 
@@ -23,6 +25,14 @@ While the project is pre-1.0, minor versions may still change behaviour.
   each camera's SD/HD choice in the grid are remembered across restarts.
   Maximizing a camera still switches it to HD; restoring it returns to the
   remembered choice.
+
+### Changed
+
+- **The update checker is off.** It looked for new releases on upstream's
+  GitHub, and this fork is built from source instead of shipped as releases.
+- **Built from source, no release builds.** The Arch PKGBUILD packages the
+  local checkout instead of downloading an upstream release, and the
+  AppImage/Flatpak release workflow is removed.
 
 ### Fixed
 
@@ -207,6 +217,7 @@ While the project is pre-1.0, minor versions may still change behaviour.
 Initial development release: live view, playback, events and device settings,
 published as an AppImage and a Flatpak bundle.
 
+[0.2.0]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.1.8...v0.2.0
 [0.1.8]: https://github.com/TodesengelX/reolink-native-linux/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/TodesengelX/reolink-native-linux/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/TodesengelX/reolink-native-linux/compare/v0.1.5...v0.1.6

@@ -27,6 +27,9 @@
     <category>Video</category>
   </categories>
   <releases>
+    <release version="0.2.0" date="2026-11-07">
+      <description><p>First release of this fork. Home Hub support: SD playback over Baichuan where the hub has no HTTP-FLV, and clip export that cuts exact-length clips with audio from a Baichuan replay, plus a Whole recording export. Battery status for every camera behind a hub or NVR, refreshed every minute. A 2-pane stacked live grid, and the grid size and per-camera SD/HD choice remembered across restarts.</p></description>
+    </release>
     <release version="0.1.8" date="2026-08-12">
       <description><p>Fixes playback failing with a retrying black screen on systems with FFmpeg 8 or newer, playback stopping at every event marker, and a device re-add leaving its header stuck on "connecting". Event playback now starts five seconds before the moment.</p></description>
     </release>
