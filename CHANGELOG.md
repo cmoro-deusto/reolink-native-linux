@@ -28,6 +28,11 @@ While the project is pre-1.0, minor versions may still change behaviour.
   the pane froze on its last frame. The stream now ends, and HD panes and
   pop-outs reconnect after 3 s; a silent live stream is closed after 15 s.
   Ported from upstream PR #15 by greenfanDev.
+- **Streams weren't torn down, and quitting left them open.** Stopping a
+  stream now sends RTSP TEARDOWN so cameras drop the session, quitting waits
+  briefly for streams to close, and logout/shutdown (SIGTERM/SIGINT) go
+  through the normal quit instead of killing the app mid-stream.
+  Ported from upstream PR #22 by greenfanDev.
 
 ## [0.2.0] — 2026-11-07
 
