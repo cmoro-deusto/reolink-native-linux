@@ -140,7 +140,8 @@ ReolinkHttpClient::HttpResponse ReolinkHttpClient::get(const QString &url, long 
 }
 
 bool ReolinkHttpClient::downloadToFile(const QString &url, const QString &destPath,
-                                       long timeoutSec, QString *error)
+                                       long timeoutSec, QString *error,
+                                       const std::function<void(qint64, qint64)> &progress)
 {
     const QByteArray destUtf8 = destPath.toUtf8();
     FILE *fp = std::fopen(destUtf8.constData(), "wb");
@@ -166,6 +167,17 @@ bool ReolinkHttpClient::downloadToFile(const QString &url, const QString &destPa
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    if (progress) {
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress);
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION,
+                         +[](void *p, curl_off_t dltotal, curl_off_t dlnow, curl_off_t,
+                             curl_off_t) -> int {
+                             (*static_cast<const std::function<void(qint64, qint64)> *>(p))(
+                                 qint64(dlnow), qint64(dltotal));
+                             return 0;
+                         });
+    }
 
     const CURLcode rc = curl_easy_perform(curl);
     long status = 0;

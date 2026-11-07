@@ -6,6 +6,8 @@
 #include <QMutex>
 #include <QString>
 
+#include <functional>
+
 namespace rl {
 
 // Blocking HTTP-CGI transport for one Reolink host (camera or NVR).
@@ -47,8 +49,11 @@ public:
     // cmd=Download). Streams to disk rather than buffering, so it handles the large
     // clips the endpoint produces. Returns false with *error set on failure (and
     // removes any partial file). timeoutSec allows a long cap (0 = default).
+    // `progress` (optional) is called from this thread as bytes arrive, with the
+    // total if the server sent a Content-Length (else 0).
     bool downloadToFile(const QString &url, const QString &destPath, long timeoutSec = 0,
-                        QString *error = nullptr);
+                        QString *error = nullptr,
+                        const std::function<void(qint64 received, qint64 total)> &progress = {});
 
     bool ensureLogin(QString *error = nullptr);
     void logout();

@@ -282,6 +282,27 @@ void EventManager::onThumbnailReady(qint64 eventId, const QString &path)
     QFile::remove(path);
 }
 
+QVariantMap EventManager::eventDuring(qint64 hostId, int channel, qint64 startEpoch,
+                                      qint64 endEpoch) const
+{
+    // The earliest detection inside the span (a couple of seconds' slack at the
+    // start: cameras fire the alarm just as recording begins).
+    const EventRecord *best = nullptr;
+    for (const EventRecord &e : m_all) {
+        if (e.hostId != hostId || e.channel != channel)
+            continue;
+        if (e.type == QLatin1String("offline") || e.type == QLatin1String("online"))
+            continue;
+        if (e.timestamp < startEpoch - 2 || e.timestamp > endEpoch)
+            continue;
+        if (!best || e.timestamp < best->timestamp)
+            best = &e;
+    }
+    if (!best)
+        return {};
+    return {{QStringLiteral("type"), best->type}, {QStringLiteral("thumbnail"), best->thumbnail}};
+}
+
 QVariantList EventManager::eventTimesFor(qint64 hostId, int channel, qint64 dayStart) const
 {
     QVariantList out;

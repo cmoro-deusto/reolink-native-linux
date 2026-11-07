@@ -10,6 +10,7 @@
 
 #include <QDateTime>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
@@ -1353,12 +1354,30 @@ void DeviceManager::requestHdClip(int row, qint64 startEpoch, int durationSecs)
 }
 
 // ~/Videos/Reolink/<Camera_Name>_<yyyyMMdd_hhmmss>.mp4
-static QString exportPath(const QString &camera, const QDateTime &start)
+static QString exportFileName(const QString &camera, const QDateTime &start)
 {
     const QString safe =
         QString(camera).replace(QRegularExpression(QStringLiteral("[^\\w-]")), QStringLiteral("_"));
-    return Paths::recordingsDir() + u'/' + safe + u'_'
-           + start.toString(QStringLiteral("yyyyMMdd_hhmmss")) + QStringLiteral(".mp4");
+    return safe + u'_' + start.toString(QStringLiteral("yyyyMMdd_hhmmss")) + QStringLiteral(".mp4");
+}
+
+static QString exportPath(const QString &camera, const QDateTime &start)
+{
+    return Paths::recordingsDir() + u'/' + exportFileName(camera, start);
+}
+
+QString DeviceManager::recordingFileName(int row, qint64 startEpoch) const
+{
+    if (row < 0 || row >= m_entries.size())
+        return {};
+    const Entry &e = m_entries.at(row);
+    return exportFileName(e.chanName.isEmpty() ? e.rec.name : e.chanName,
+                          QDateTime::fromSecsSinceEpoch(startEpoch));
+}
+
+QString DeviceManager::defaultRecordingsDir() const
+{
+    return Paths::recordingsDir();
 }
 
 void DeviceManager::postExportResult(int row, const QString &saved, const QString &error)
@@ -1417,6 +1436,37 @@ void DeviceManager::exportClip(int row, qint64 startEpoch, int durationSecs)
     }));
 }
 
+// Save one recording file as the device stored it: Download by its Search
+// name, or — on firmware with no download endpoint (404) — rebuilt from a
+// Baichuan replay of its span. Worker thread. `progress` (optional) gets the
+// fraction done: bytes against sizeBytes (the hub sends no Content-Length),
+// or video time against the span for the Baichuan path.
+static bool fetchRecording(ReolinkHttpClient &client, const QString &host, int port, bool https,
+                           const QString &name, qint64 startEpoch, qint64 endEpoch,
+                           const QString &path, BaichuanClient::Params bc, QString *error,
+                           qint64 sizeBytes = 0,
+                           const std::function<void(double)> &progress = {})
+{
+    const QString url = api::downloadUrl(host, port, https, name, client.token());
+    QString dlErr;
+    std::function<void(qint64, qint64)> onBytes;
+    if (progress)
+        onBytes = [&progress, sizeBytes](qint64 got, qint64 total) {
+            const qint64 of = total > 0 ? total : sizeBytes;
+            if (of > 0 && got > 0)
+                progress(qMin(1.0, double(got) / double(of)));
+        };
+    if (client.downloadToFile(url, path, 300, &dlErr, onBytes))
+        return true;
+    if (dlErr == QLatin1String("HTTP 404") && endEpoch > startEpoch) {
+        qCInfo(lcProto) << "Download unavailable; exporting the recording over Baichuan";
+        bc.startEpoch = startEpoch;
+        return exportBaichuanClip(bc, endEpoch, path, error, nullptr, progress);
+    }
+    *error = downloadError(dlErr, DeviceManager::tr("download failed"));
+    return false;
+}
+
 void DeviceManager::exportRecording(int row, qint64 atEpoch)
 {
     auto client = clientFor(row);
@@ -1442,22 +1492,123 @@ void DeviceManager::exportRecording(int row, qint64 atEpoch)
         const RecordingRef ref = recordingAt(*client, ch, at, at.addSecs(300), &error);
         if (!ref.name.isEmpty()) {
             const QString path = exportPath(camera, ref.start);
-            const QString url = api::downloadUrl(host, port, https, ref.name, client->token());
-            QString dlErr;
-            if (client->downloadToFile(url, path, 300, &dlErr)) {
+            if (fetchRecording(*client, host, port, https, ref.name, ref.start.toSecsSinceEpoch(),
+                               ref.end.isValid() ? ref.end.toSecsSinceEpoch() : 0, path, bc,
+                               &error))
                 saved = path;
-            } else if (dlErr == QLatin1String("HTTP 404") && ref.end.isValid()) {
-                // No download endpoint on this firmware: rebuild the recording's
-                // full span from a Baichuan replay instead.
-                qCInfo(lcProto) << "Download unavailable; exporting the recording over Baichuan";
-                bc.startEpoch = ref.start.toSecsSinceEpoch();
-                if (exportBaichuanClip(bc, ref.end.toSecsSinceEpoch(), path, &error))
-                    saved = path;
-            } else {
-                error = downloadError(dlErr, tr("download failed"));
-            }
         }
         postExportResult(row, saved, error);
+    }));
+}
+
+void DeviceManager::listRecordings(const QVariantList &rows, int year, int month, int day)
+{
+    const QDate date(year, month, day);
+    if (!date.isValid())
+        return;
+    // Snapshot what each worker step needs on the GUI thread.
+    struct Job {
+        int row;
+        int channel;
+        std::shared_ptr<ReolinkHttpClient> client;
+    };
+    QVector<Job> jobs;
+    for (const QVariant &v : rows) {
+        const int row = v.toInt();
+        auto client = clientFor(row);
+        if (!client) {
+            emit recordingsListFailed(row, year, month, day, tr("device not ready"));
+            continue;
+        }
+        jobs.append({row, m_entries.at(row).channel, client});
+    }
+    // One camera at a time: NVRs are connection-limited.
+    m_pending.addFuture(QtConcurrent::run([this, jobs, date, year, month, day] {
+        const QDateTime start(date, QTime(0, 0, 0));
+        const QDateTime end(date, QTime(23, 59, 59));
+        for (const Job &j : jobs) {
+            const api::BatchResult b = j.client->call(
+                Json::array({api::searchBody(j.channel, start, end, QStringLiteral("main"))}));
+            QVariantList files;
+            QString error;
+            if (b.transportOk && !b.results.isEmpty() && b.results.first().ok) {
+                for (const api::RecordingFile &f : api::parseSearch(b.results.first().value).files) {
+                    if (!f.start.isValid())
+                        continue;
+                    QVariantMap m;
+                    m[QStringLiteral("name")] = f.name;
+                    m[QStringLiteral("start")] = double(f.start.toSecsSinceEpoch());
+                    m[QStringLiteral("end")] =
+                        double(f.end.isValid() ? f.end.toSecsSinceEpoch() : f.start.toSecsSinceEpoch());
+                    m[QStringLiteral("size")] = double(f.size);
+                    files.append(m);
+                }
+            } else {
+                error = b.error.isEmpty() ? tr("recording search failed") : b.error;
+            }
+            const int row = j.row;
+            QMetaObject::invokeMethod(
+                this,
+                [this, row, year, month, day, files, error] {
+                    if (error.isEmpty())
+                        emit recordingsListed(row, year, month, day, files);
+                    else
+                        emit recordingsListFailed(row, year, month, day, error);
+                },
+                Qt::QueuedConnection);
+        }
+    }));
+}
+
+void DeviceManager::downloadRecording(int row, qint64 startEpoch, qint64 endEpoch,
+                                      const QString &name, qint64 sizeBytes,
+                                      const QString &destPath)
+{
+    auto client = clientFor(row);
+    if (!client || name.isEmpty()) {
+        emit recordingDownloadFailed(row, startEpoch, tr("device not ready"));
+        return;
+    }
+    const Entry &e = m_entries.at(row);
+    const QString host = e.rec.addr;
+    const int port = e.rec.port;
+    const bool https = e.rec.https;
+    const QString path = destPath.isEmpty()
+                             ? exportPath(e.chanName.isEmpty() ? e.rec.name : e.chanName,
+                                          QDateTime::fromSecsSinceEpoch(startEpoch))
+                             : destPath;
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    const BaichuanClient::Params bc =
+        bcParams(e.rec.addr, e.rec.username, e.password, e.channel, e.uid, true, 0);
+    m_pending.addFuture(QtConcurrent::run([this, client, row, host, port, https, name, startEpoch,
+                                           endEpoch, path, bc, sizeBytes] {
+        QString error;
+        // Report at most every 1% or 150 ms, so a fast LAN download doesn't
+        // flood the GUI thread.
+        double lastSent = -1;
+        QElapsedTimer sinceSent;
+        sinceSent.start();
+        const auto progress = [&](double f) {
+            if (f < 1.0 && f - lastSent < 0.01 && sinceSent.elapsed() < 150)
+                return;
+            lastSent = f;
+            sinceSent.restart();
+            QMetaObject::invokeMethod(
+                this, [this, row, startEpoch, f] {
+                    emit recordingDownloadProgress(row, startEpoch, f);
+                }, Qt::QueuedConnection);
+        };
+        const bool ok = fetchRecording(*client, host, port, https, name, startEpoch, endEpoch,
+                                       path, bc, &error, sizeBytes, progress);
+        QMetaObject::invokeMethod(
+            this,
+            [this, row, startEpoch, ok, path, error] {
+                if (ok)
+                    emit recordingDownloaded(row, startEpoch, path);
+                else
+                    emit recordingDownloadFailed(row, startEpoch, error);
+            },
+            Qt::QueuedConnection);
     }));
 }
 

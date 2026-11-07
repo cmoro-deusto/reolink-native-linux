@@ -75,6 +75,7 @@ set(APP_QML_FILES
     src/ui/qml/pages/LiveViewPage.qml
     src/ui/qml/pages/PlaybackPage.qml
     src/ui/qml/pages/EventsPage.qml
+    src/ui/qml/pages/RecordingsPage.qml
     src/ui/qml/pages/DeviceSettingsPage.qml
     src/ui/qml/dialogs/AddDeviceDialog.qml
     src/ui/qml/dialogs/PropertiesDialog.qml

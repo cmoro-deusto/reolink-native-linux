@@ -343,7 +343,8 @@ private:
 } // namespace
 
 bool exportBaichuanClip(BaichuanClient::Params params, qint64 endEpoch, const QString &outPath,
-                        QString *error, const std::atomic<bool> *cancel)
+                        QString *error, const std::atomic<bool> *cancel,
+                        const std::function<void(double)> &progress)
 {
     const qint64 durationUs = (endEpoch - params.startEpoch) * 1000000;
     if (params.startEpoch <= 0 || durationUs <= 0) {
@@ -373,6 +374,8 @@ bool exportBaichuanClip(BaichuanClient::Params params, qint64 endEpoch, const QS
         }
         clip.addVideo(f);
         lastFrameMs = clock.elapsed();
+        if (progress)
+            progress(qMin(1.0, double(clip.videoUs()) / double(durationUs)));
     };
     params.onAudio = [&](const BcMediaParser::AudioFrame &a) {
         QMutexLocker lock(&mutex);

@@ -145,7 +145,7 @@ ApplicationWindow {
                     liveViewPage.showCamera(row);
                 }
                 onOpenSettings: (row) => {
-                    nav.currentIndex = 3;
+                    nav.currentIndex = 4;
                     settingsPage.showDevice(row);
                 }
                 onCameraProperties: (row) => window.showCameraProperties(row)
@@ -182,6 +182,7 @@ ApplicationWindow {
                         playbackPage.openAt(hostId, channel, timestamp);
                     }
                 }
+                RecordingsPage {}
                 DeviceSettingsPage { id: settingsPage }
             }
         }
@@ -247,7 +248,7 @@ ApplicationWindow {
     // Device / camera "Properties" sheet, populated from the model.
     PropertiesDialog {
         id: propsDialog
-        onOpenSettings: (row) => { nav.currentIndex = 3; settingsPage.showDevice(row); }
+        onOpenSettings: (row) => { nav.currentIndex = 4; settingsPage.showDevice(row); }
     }
     function showCameraProperties(row) {
         var c = Devices.cameraInfo(row);

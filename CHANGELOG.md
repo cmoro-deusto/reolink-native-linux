@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
+## [Unreleased]
+
+### Added
+
+- **Recordings page** — a new tab between Events and Device Settings listing
+  every recording the devices hold for a day, newest first: camera, date and
+  time (24-hour), duration and size. Step through days with ‹ ›, filter by
+  camera, and download any recording on hover — the device's own file
+  (rebuilt over Baichuan on firmware without downloads). The button shows a
+  progress ring and percentage, which turns into a green tick when done; its
+  ▾ menu offers Save as… and a remembered download folder (default
+  ~/Videos/Reolink).
+  A recording that overlaps a detection shows its type and snapshot.
+
 ## [0.3.0] — 2026-11-07
 
 ### Added

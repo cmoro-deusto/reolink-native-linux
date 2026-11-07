@@ -183,6 +183,22 @@ public:
     // Save the whole recording file that covers atEpoch, as the device stored it
     // (Download), into ~/Videos/Reolink. Same signals as exportClip.
     Q_INVOKABLE void exportRecording(int row, qint64 atEpoch);
+    // Recordings page: list each camera's main-stream recordings for one day,
+    // one camera at a time. Emits recordingsListed per camera with entries
+    // {name, start, end (epoch seconds), size (bytes)}, or recordingsListFailed.
+    // Separate from searchRecordings, which also feeds Playback's own state.
+    Q_INVOKABLE void listRecordings(const QVariantList &rows, int year, int month, int day);
+    // Save one listed recording (by its Search name) as the device stored it,
+    // into ~/Videos/Reolink; Baichuan replay where the firmware has no Download.
+    // sizeBytes (from the listing) drives the progress fraction: the hub's
+    // Download response has no Content-Length. destPath is the full file path to
+    // write; empty = defaultRecordingsDir()/recordingFileName().
+    Q_INVOKABLE void downloadRecording(int row, qint64 startEpoch, qint64 endEpoch,
+                                       const QString &name, qint64 sizeBytes = 0,
+                                       const QString &destPath = QString());
+    // "<Camera>_<yyyyMMdd_hhmmss>.mp4" for a recording, and the default folder.
+    Q_INVOKABLE QString recordingFileName(int row, qint64 startEpoch) const;
+    Q_INVOKABLE QString defaultRecordingsDir() const;
 
     // Native (Baichuan/TCP 9000) recorded playback: stream the recording from
     // startEpoch straight into `player` — realtime, frame-accurate, full HEVC main.
@@ -263,6 +279,11 @@ signals:
     void hdClipFailed(int row, const QString &error);
     void clipExported(int row, const QString &path);
     void clipExportFailed(int row, const QString &error);
+    void recordingsListed(int row, int year, int month, int day, const QVariantList &files);
+    void recordingsListFailed(int row, int year, int month, int day, const QString &error);
+    void recordingDownloadProgress(int row, qint64 startEpoch, double fraction);
+    void recordingDownloaded(int row, qint64 startEpoch, const QString &path);
+    void recordingDownloadFailed(int row, qint64 startEpoch, const QString &error);
     void settingsLoaded(int row, const QVariantMap &values);
     void settingsFailed(int row, const QString &error);
     void settingApplied(int row, const QString &command, bool ok, const QString &error);

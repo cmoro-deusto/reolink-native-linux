@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonInstance("ReolinkApp.Core", 1, 0, "UiMetrics", &uiMetrics);
 
     QQmlApplicationEngine engine;
-    // Lets tests/screenshots open a specific page (0=Live,1=Playback,2=Events,3=Settings).
+    // Lets tests/screenshots open a specific page (0=Live,1=Playback,2=Events,3=Recordings,4=Settings).
     engine.rootContext()->setContextProperty(
         QStringLiteral("initialPage"), qEnvironmentVariableIntValue("RL_INITIAL_PAGE"));
     engine.rootContext()->setContextProperty(
