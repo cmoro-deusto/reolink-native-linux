@@ -8,7 +8,7 @@ A fully **native Linux desktop client** for Reolink cameras and NVRs — built t
 
 **No Wine, no Electron, no web wrappers, no bundled third-party NVR software.** Compiled C++/Qt6 talking directly to the devices over their own protocols — including the native **Baichuan** protocol (TCP 9000) the official apps use, which is why live HD, recorded playback, and settings work reliably where third-party RTSP/HTTP tools struggle.
 
-> **Status: alpha.** Actively developed against a real RLN8-410 NVR, with community-confirmed setups on an RLC-823S1 standalone camera and a Home Hub Pro. Live view, playback, events, notifications and device settings all work; two-way talk audio and remote/P2P access are still in progress.
+> **Status: alpha.** This fork is developed and tested against a real Reolink Home Hub Pro (firmware v3.3.0.605) with battery cameras: live view, playback, clip export, events, notifications and battery status all work there. The upstream project was developed against an RLN8-410 NVR and confirmed on an RLC-823S1 standalone camera; those paths are kept but not re-tested here. Two-way talk audio and remote/P2P access are still in progress.
 
 See the [changelog](CHANGELOG.md) for what's new.
 
