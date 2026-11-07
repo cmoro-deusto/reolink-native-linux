@@ -27,6 +27,9 @@
     <category>Video</category>
   </categories>
   <releases>
+    <release version="0.3.2" date="2026-11-07">
+      <description><p>Fixes a Home Hub with a camera that has no battery: start-up took about 20 seconds and the other cameras' live view was broken.</p></description>
+    </release>
     <release version="0.3.1" date="2026-11-07">
       <description><p>A new Recordings page lists a day's recordings from every camera, filterable by camera, with a download button that shows progress and can save to a folder of your choice.</p></description>
     </release>
