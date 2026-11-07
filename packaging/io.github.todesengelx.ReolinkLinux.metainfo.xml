@@ -27,6 +27,9 @@
     <category>Video</category>
   </categories>
   <releases>
+    <release version="0.3.3" date="2026-11-07">
+      <description><p>PTZ and zoom controls only appear on cameras that can use them: pan/tilt-only cameras no longer show zoom buttons that do nothing, and battery cameras without a motor no longer show a PTZ button.</p></description>
+    </release>
     <release version="0.3.2" date="2026-11-07">
       <description><p>Fixes a Home Hub with a camera that has no battery: start-up took about 20 seconds and the other cameras' live view was broken.</p></description>
     </release>
