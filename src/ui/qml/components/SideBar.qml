@@ -326,7 +326,8 @@ Rectangle {
                         visible: batteryPercent >= 0
                         spacing: 3
                         Text {
-                            text: batteryCharging ? "⚡" : ""
+                            text: "⚡"
+                            visible: batteryCharging
                             color: Theme.online
                             font.pixelSize: 11
                             anchors.verticalCenter: parent.verticalCenter
@@ -351,11 +352,22 @@ Rectangle {
                                 width: 2; height: 5; color: Theme.textMuted
                             }
                         }
+                        // Fixed "100%" width, right-aligned, so icons and % signs line
+                        // up across rows whatever the digit count; the left padding
+                        // clears the terminal, which is drawn outside the battery body.
                         Text {
                             text: batteryPercent + "%"
                             color: Theme.textMuted
                             font.pixelSize: 10
+                            horizontalAlignment: Text.AlignRight
+                            leftPadding: 4
+                            width: leftPadding + pctMetrics.advanceWidth
                             anchors.verticalCenter: parent.verticalCenter
+                            TextMetrics {
+                                id: pctMetrics
+                                font.pixelSize: 10
+                                text: "100%"
+                            }
                         }
                     }
                 }

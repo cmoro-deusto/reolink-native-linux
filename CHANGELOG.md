@@ -22,6 +22,9 @@ While the project is pre-1.0, minor versions may still change behaviour.
 
 ### Fixed
 
+- **Sidebar battery badge spacing.** The percentage no longer touches the
+  battery icon, and badges line up across cameras whether they read 92% or
+  100%.
 - **Only the first camera on a hub/NVR showed its battery level.** Battery
   state was requested for channel 0 only; every online channel is now asked,
   so each battery camera behind a Home Hub or NVR gets its own badge.
