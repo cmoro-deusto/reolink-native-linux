@@ -54,22 +54,22 @@ Requires Qt 6.5+ (base / declarative / multimedia / shadertools / tools), FFmpeg
 
 ## Features
 
-- **Live view** — 1/2/4/6/9/16 grid; drag cameras in from the sidebar or between cells to arrange them (the layout persists); hardware-accelerated H.264/H.265 decode (VAAPI/NVDEC) with software fallback; double-click a camera (or single-click it in the sidebar) to maximize; F11 fullscreen; per-pane floating toolbar (SD/HD, snapshot, record, digital zoom with edge-clamped pan, PTZ, talk, siren, floodlight, pop-out); auto-reconnect. Maximized/pop-out HD streams use Baichuan, which avoids the corruption some Reolink NVRs emit on their RTSP main stream.
-- **Playback** — month calendar, two-tone timeline (timer/alarm) with red ticks marking detections, recording search, in-place seek and a live playhead, pan/zoom the timeline, clip export, HD playback over Baichuan. **Synced multi-camera playback**: a 4-pane grid driven by one timeline showing every camera's coverage as per-camera lanes, with one playhead driving all panes to the same moment — drag cameras in, swap panes without interrupting their streams, double-click to maximize with an SD/HD toggle, digital zoom in every pane.
+- **Live view** — 1/2/4/6/9/16 grid (2 stacks two cameras one above the other); drag cameras in from the sidebar or between cells to arrange them; the arrangement, grid size and each camera's SD/HD choice are remembered across restarts; hardware-accelerated H.264/H.265 decode (VAAPI/NVDEC) with software fallback; double-click a camera (or single-click it in the sidebar) to maximize; F11 fullscreen; per-pane floating toolbar (SD/HD, snapshot, record, digital zoom with edge-clamped pan, PTZ, talk, siren, floodlight, pop-out); auto-reconnect. Maximized/pop-out HD streams use Baichuan, which avoids the corruption some Reolink NVRs emit on their RTSP main stream.
+- **Playback** — month calendar, two-tone timeline (timer/alarm) with red ticks marking detections, recording search, in-place seek and a live playhead, pan/zoom the timeline, HD playback over Baichuan. **Clip export** — exact-length clips (15 s – 2 min) with audio, or the whole recording as the device stored it; on devices that can't cut clips over HTTP (Home Hub) the clip is stream-copied from a Baichuan replay, much faster than realtime. Devices without an HTTP-FLV endpoint (Home Hub) play SD over Baichuan automatically. **Synced multi-camera playback**: a 4-pane grid driven by one timeline showing every camera's coverage as per-camera lanes, with one playhead driving all panes to the same moment — drag cameras in, swap panes without interrupting their streams, double-click to maximize with an SD/HD toggle, digital zoom in every pane.
 - **Honest failure handling** — unreachable devices show why and retry themselves with backoff; sign-in failures surface the device's attempts-left lockout warning and are never auto-retried; right-click a device to Reconnect or fix its credentials in place; adding a device validates it first, so a typo'd address or wrong password is an inline message instead of a stuck row. Per-camera **Rotate view** override for devices whose firmware misreports orientation.
 - **Events** — notification inbox with thumbnails, AI-type filters (person/vehicle/pet/visitor/motion) and per-camera filtering, detection polling, jump-to-playback, unread badge.
 - **Background monitoring** — lives in the system tray with the window closed, so alerts keep arriving; optional start-on-login. Desktop notifications fire for detections (gated on each camera's Push setting) and for cameras or the NVR going offline; clicking one opens the app and plays that event back.
 - **Device tree** — NVR shown as an expandable parent with its cameras nested; right-click for Properties / Settings / Reboot / Remove.
 - **Settings** — Image (brightness/contrast/saturation/sharpness, mirror/flip, day/night), Detection (motion + per-AI-type sensitivity, alerts, and a paint-on-image detection-zone editor), Recording (including a weekly 7×24 schedule grid per recording type), Encoding, Display/OSD, Network, Storage, Users, Time, System. Camera settings run over the native Baichuan protocol, so they don't hit the NVR web server's under-load 502s.
-- **Extras** — battery/solar status, doorbell answer surface, multi-monitor pop-out, fisheye dewarp shader, manual MP4 recording (stream-copy), and a built-in update checker with one-click self-update for the AppImage.
+- **Extras** — battery/solar status for every camera behind an NVR or hub, refreshed every minute, doorbell answer surface, multi-monitor pop-out, fisheye dewarp shader, manual MP4 recording (stream-copy), and a built-in update checker with one-click self-update for the AppImage.
 
 ## How it talks to your devices
 
 | Transport | Used for |
 |---|---|
-| **Baichuan** (TCP 9000) | The native app protocol: HD live + recorded playback, and reading/writing device settings. Reliable under NVR load. |
-| RTSP / HTTP-FLV | Live sub-stream grid and light playback scrubbing. |
-| HTTP-CGI JSON API (:443) | Device discovery/validation, host-level settings (network/storage/users/time), and detection polling. |
+| **Baichuan** (TCP 9000) | The native app protocol: HD live + recorded playback, exact-length clip export where HTTP can't cut clips, and reading/writing device settings. Reliable under NVR load. |
+| RTSP / HTTP-FLV | Live sub-stream grid and light playback scrubbing (Baichuan takes over on devices without HTTP-FLV). |
+| HTTP-CGI JSON API (:443) | Device discovery/validation, host-level settings (network/storage/users/time), detection and battery polling, and recording downloads. |
 
 ## Documentation
 
