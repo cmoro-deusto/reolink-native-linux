@@ -317,6 +317,7 @@ private:
         QSize subSize;
         QString uid;
         api::ChannelCaps caps;
+        api::BatteryInfo battery; // battery/solar state (if any)
     };
 
     // Outcome of a worker-thread validation, applied back on the GUI thread.

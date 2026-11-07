@@ -14,6 +14,12 @@ While the project is pre-1.0, minor versions may still change behaviour.
   of the other (1 column × 2 rows), between the 1 and 4 buttons in the Live
   View toolbar.
 
+### Fixed
+
+- **Only the first camera on a hub/NVR showed its battery level.** Battery
+  state was requested for channel 0 only; every online channel is now asked,
+  so each battery camera behind a Home Hub or NVR gets its own badge.
+
 ## [0.1.8] — 2026-08-12
 
 ### Fixed
