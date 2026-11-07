@@ -18,6 +18,11 @@ While the project is pre-1.0, minor versions may still change behaviour.
   font and follows it if it changes while the app runs. Display scaling
   (e.g. 145%) was already handled by Qt; at the default font nothing
   changes.
+- **Video kept streaming while the window was hidden in the tray.** Live View
+  and Playback now stop their streams when the window is closed to the tray
+  (monitoring, events and notifications carry on) and Live View resumes when
+  it's reopened — about 3% CPU hidden instead of 25% with four cameras.
+  Ported from upstream PR #23 by greenfanDev.
 
 ## [0.2.0] — 2026-11-07
 
