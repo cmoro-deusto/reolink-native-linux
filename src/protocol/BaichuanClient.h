@@ -8,6 +8,7 @@
 #include <QWaitCondition>
 
 #include <atomic>
+#include <functional>
 #include <thread>
 
 class QTcpSocket;
@@ -39,6 +40,11 @@ public:
         QString uid;                    // camera UID (from GetChannelstatus)
         bool mainStream = true;
         qint64 startEpoch = 0;          // 0 => live preview; else recorded playback from here
+        // Export mode: when onVideo is set, frames are handed to these callbacks
+        // (on the worker thread) instead of being queued for read(), and recorded
+        // playback runs at the device's full speed rather than paced to 1x.
+        std::function<void(const BcMediaParser::VideoFrame &)> onVideo;
+        std::function<void(const BcMediaParser::AudioFrame &)> onAudio;
     };
 
     explicit BaichuanClient(Params params);
@@ -54,6 +60,10 @@ public:
     // the by-time command on the same connection — no reconnect/re-login). Returns
     // false if the session has already ended (caller should start a fresh one).
     bool seek(qint64 startEpoch);
+
+    // Block up to `ms` for the worker to finish (connection closed, login or
+    // stream failure, or stop()). Returns true once it has.
+    bool waitFinished(int ms);
 
     // Blocking read of decoded Annex-B bytes (for an AVIOContext read callback).
     // Returns the number of bytes written, 0 on clean end, or <0 on abort/error.

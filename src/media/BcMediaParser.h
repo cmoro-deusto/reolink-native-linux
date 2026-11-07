@@ -13,7 +13,7 @@
 // re-splits the rolling buffer by BCMedia framing and emits video NAL data (which
 // is already Annex-B with 00 00 00 01 start codes — SPS/PPS/VPS inline in every
 // I-frame). Info frames update the declared width/height. Audio frames are
-// currently skipped.
+// handed to onAudio as-is (AAC arrives as ADTS).
 //
 // Clean-room from the documented BCMedia frame layout (a factual wire format),
 // not from AGPL neolink.
@@ -29,11 +29,21 @@ public:
         Codec codec = Codec::Unknown;
         quint32 microseconds = 0; // presentation time source
         quint32 time = 0;         // POSIX UTC wall-clock of the frame (0 if absent)
+        int width = 0;            // declared by the last Info frame (0 if none yet)
+        int height = 0;
         QByteArray annexB;        // raw elementary-stream bytes, feed to a decoder
+    };
+
+    enum class AudioCodec { AAC, ADPCM };
+    struct AudioFrame {
+        AudioCodec codec = AudioCodec::AAC;
+        QByteArray data; // AAC: one or more ADTS frames; ADPCM: the raw block
     };
 
     // Called for each complete video frame, in stream order.
     std::function<void(const VideoFrame &)> onVideo;
+    // Called for each complete audio frame, in stream order (optional).
+    std::function<void(const AudioFrame &)> onAudio;
 
     // Append decrypted media bytes from one BC message and parse any now-complete
     // frames (invoking onVideo). Returns the number of video frames emitted.

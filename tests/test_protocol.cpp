@@ -449,7 +449,39 @@ private slots:
         QVERIFY(frames[0].keyFrame);
         QCOMPARE(int(frames[0].codec), int(rl::BcMediaParser::Codec::H264));
         QCOMPARE(frames[0].microseconds, quint32(12345));
+        QCOMPARE(frames[0].width, 1536);
+        QCOMPARE(frames[0].height, 432);
         QCOMPARE(frames[0].annexB, nal);
+    }
+
+    void bcMediaParserAudio()
+    {
+        // AAC ("05wb") then ADPCM ("01wb"): 8-byte header (magic, le16 size twice),
+        // payload, padding to 8. Audio is handed out unchanged, in order.
+        auto audio = [](const char *magic, const QByteArray &payload) {
+            QByteArray a(magic, 4);
+            const quint16 n = static_cast<quint16>(payload.size());
+            a.append(char(n & 0xff)).append(char(n >> 8));
+            a.append(char(n & 0xff)).append(char(n >> 8));
+            a.append(payload);
+            a.append(QByteArray((8 - payload.size() % 8) % 8, 0));
+            return a;
+        };
+        const QByteArray aac = QByteArray::fromHex("fff15080021ffc2100"); // 9 bytes
+        const QByteArray adpcm = QByteArray::fromHex("0102030405");
+
+        rl::BcMediaParser mp;
+        QList<rl::BcMediaParser::AudioFrame> got;
+        mp.onAudio = [&](const rl::BcMediaParser::AudioFrame &f) { got.append(f); };
+        const QByteArray stream = audio("05wb", aac) + audio("01wb", adpcm);
+        mp.append(stream.left(11)); // split mid-payload
+        QCOMPARE(got.size(), 0);
+        mp.append(stream.mid(11));
+        QCOMPARE(got.size(), 2);
+        QCOMPARE(int(got[0].codec), int(rl::BcMediaParser::AudioCodec::AAC));
+        QCOMPARE(got[0].data, aac);
+        QCOMPARE(int(got[1].codec), int(rl::BcMediaParser::AudioCodec::ADPCM));
+        QCOMPARE(got[1].data, adpcm);
     }
 };
 

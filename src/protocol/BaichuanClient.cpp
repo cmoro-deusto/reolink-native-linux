@@ -3,6 +3,7 @@
 #include "protocol/BcCrypto.h"
 
 #include <QDateTime>
+#include <QDeadlineTimer>
 #include <QElapsedTimer>
 #include <QTcpSocket>
 #include <QThread>
@@ -298,6 +299,14 @@ void BaichuanClient::sendPlayback(QTcpSocket &sock, const QByteArray &aesKey, qi
     sock.flush();
 }
 
+bool BaichuanClient::waitFinished(int ms)
+{
+    QMutexLocker lock(&m_mutex);
+    if (!m_finished)
+        m_cond.wait(&m_mutex, QDeadlineTimer(ms));
+    return m_finished;
+}
+
 bool BaichuanClient::seek(qint64 startEpoch)
 {
     if (startEpoch <= 0)
@@ -317,8 +326,15 @@ void BaichuanClient::pumpMedia(QTcpSocket &sock, const QByteArray &aesKey, quint
     // position (POSIX seconds); 0 = no seek pending.
     qint64 seekTarget = 0;
     // Recorded playback is delivered faster than realtime; pace it to 1x from the
-    // frame timestamps so it doesn't fast-forward. Live preview is not paced.
-    const bool pace = m_p.startEpoch > 0;
+    // frame timestamps so it doesn't fast-forward. Live preview is not paced, and
+    // neither is an export, which wants the bytes as fast as the device sends.
+    const bool pace = m_p.startEpoch > 0 && !m_p.onVideo;
+    // Audio rides along only once video has started on a keyframe.
+    if (m_p.onAudio)
+        parser.onAudio = [&](const BcMediaParser::AudioFrame &a) {
+            if (started)
+                m_p.onAudio(a);
+        };
     QElapsedTimer clock;
     quint32 firstMicros = 0;
     parser.onVideo = [&](const BcMediaParser::VideoFrame &f) {
@@ -354,7 +370,10 @@ void BaichuanClient::pumpMedia(QTcpSocket &sock, const QByteArray &aesKey, quint
                     QThread::msleep(static_cast<unsigned long>(qMin<qint64>(wait, 50)));
             }
         }
-        pushAnnexB(f.annexB);
+        if (m_p.onVideo)
+            m_p.onVideo(f);
+        else
+            pushAnnexB(f.annexB);
     };
 
     QByteArray netBuf = m_streamTail;

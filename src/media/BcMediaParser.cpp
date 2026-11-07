@@ -77,6 +77,8 @@ int BcMediaParser::append(const QByteArray &mediaBytes)
             f.keyFrame = keyFrame;
             f.microseconds = micros;
             f.time = time;
+            f.width = m_width;
+            f.height = m_height;
             if (b[4] == 'H' && b[5] == '2' && b[6] == '6')
                 f.codec = (b[7] == '5') ? Codec::H265 : Codec::H264;
             f.annexB = m_buf.mid(dataStart, static_cast<int>(payloadSize));
@@ -94,7 +96,13 @@ int BcMediaParser::append(const QByteArray &mediaBytes)
             const int total = 8 + static_cast<int>(size) + padFor(size);
             if (m_buf.size() < total)
                 break;
-            m_buf.remove(0, total); // audio skipped in the video path
+            if (onAudio) {
+                AudioFrame a;
+                a.codec = (b[1] == '5') ? AudioCodec::AAC : AudioCodec::ADPCM;
+                a.data = m_buf.mid(8, static_cast<int>(size));
+                onAudio(a);
+            }
+            m_buf.remove(0, total);
             continue;
         }
 
