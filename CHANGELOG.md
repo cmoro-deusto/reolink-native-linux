@@ -13,6 +13,8 @@ While the project is pre-1.0, minor versions may still change behaviour.
 - **2-pane live grid** — a new layout preset that stacks two cameras one on top
   of the other (1 column × 2 rows), between the 1 and 4 buttons in the Live
   View toolbar.
+- **Battery levels refresh while the app runs** — every minute, folded into
+  the existing per-host status poll, instead of only at connect/Reconnect.
 
 ### Fixed
 

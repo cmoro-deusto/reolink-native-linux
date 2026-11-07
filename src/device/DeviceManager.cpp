@@ -97,6 +97,8 @@ DeviceManager::~DeviceManager()
     m_pending.waitForFinished();
 }
 
+static constexpr int kBatteryRefreshSecs = 60;
+
 static QString detKey(qint64 hostId, int channel)
 {
     return QString::number(hostId) + u':' + QString::number(channel);
@@ -154,6 +156,24 @@ void DeviceManager::applyConnectivity(qint64 hostId, bool transportOk,
     }
 }
 
+void DeviceManager::applyBatteries(qint64 hostId, const QHash<int, api::BatteryInfo> &batteries)
+{
+    for (auto it = batteries.constBegin(); it != batteries.constEnd(); ++it) {
+        for (int i = 0; i < m_entries.size(); ++i) {
+            Entry &e = m_entries[i];
+            if (e.rec.id != hostId || e.channel != it.key())
+                continue;
+            const api::BatteryInfo &b = it.value();
+            if (!e.battery.present || e.battery.percent != b.percent
+                || e.battery.charging != b.charging) {
+                e.battery = b;
+                emit dataChanged(index(i), index(i), {BatteryPercentRole, BatteryChargingRole});
+            }
+            break;
+        }
+    }
+}
+
 void DeviceManager::pollDetections()
 {
     if (!m_pushWarmed)
@@ -182,6 +202,7 @@ void DeviceManager::pollDetections()
         std::shared_ptr<ReolinkHttpClient> client;
         QVector<int> channels;
         QVector<bool> wantAi;
+        QVector<bool> wantBattery;
         QVector<QString> names;
     };
     QHash<qint64, HostPoll> byHost;
@@ -191,12 +212,13 @@ void DeviceManager::pollDetections()
         if (e.rec.kind == QLatin1String("stream") || !e.client)
             continue;
         if (!byHost.contains(e.rec.id)) {
-            byHost[e.rec.id] = HostPoll{e.client, {}, {}, {}};
+            byHost[e.rec.id] = HostPoll{e.client, {}, {}, {}, {}};
             order.append(e.rec.id);
         }
         HostPoll &hp = byHost[e.rec.id];
         hp.channels.append(e.channel);
         hp.wantAi.append(e.caps.ai);
+        hp.wantBattery.append(e.battery.present || e.caps.battery);
         hp.names.append(e.chanName);
     }
 
@@ -205,21 +227,35 @@ void DeviceManager::pollDetections()
         if (m_pollInFlight.value(key, false))
             continue;
         m_pollInFlight[key] = true;
-        const HostPoll hp = byHost.value(hostId);
+        HostPoll hp = byHost.value(hostId);
+
+        // Battery only every kBatteryRefreshSecs. Validation just read it, so a
+        // host's first refresh waits a full interval.
+        const QDateTime batteryDue = m_nextBatteryAt.value(hostId);
+        if (!batteryDue.isValid() || batteryDue > now)
+            hp.wantBattery.fill(false);
+        if (!batteryDue.isValid() || batteryDue <= now)
+            m_nextBatteryAt[hostId] = now.addSecs(kBatteryRefreshSecs);
 
         m_pending.addFuture(QtConcurrent::run([this, hostId, key, hp] {
             // Build one ordered batch; remember what each entry maps to.
-            struct Item { int channel; bool isAi; };
+            enum class Kind { Md, Ai, Battery };
+            struct Item { int channel; Kind kind; };
             QVector<Item> items;
             Json cmds = Json::array();
             for (int i = 0; i < hp.channels.size(); ++i) {
                 const int ch = hp.channels[i];
-                items.append({ch, false});
+                items.append({ch, Kind::Md});
                 cmds.push_back(api::command(QStringLiteral("GetMdState"), Json{{"channel", ch}}));
                 if (hp.wantAi[i]) {
-                    items.append({ch, true});
+                    items.append({ch, Kind::Ai});
                     cmds.push_back(
                         api::command(QStringLiteral("GetAiState"), Json{{"channel", ch}}));
+                }
+                if (hp.wantBattery[i]) {
+                    items.append({ch, Kind::Battery});
+                    cmds.push_back(
+                        api::command(QStringLiteral("GetBatteryInfo"), Json{{"channel", ch}}));
                 }
             }
             // One channel-status query per NVR cycle: notices cameras that
@@ -242,13 +278,21 @@ void DeviceManager::pollDetections()
 
             // Combine per-channel md/ai (results preserve request order).
             QHash<int, api::DetectionState> states;
+            QHash<int, api::BatteryInfo> batteries;
             if (batch.transportOk) {
                 for (int i = 0; i < batch.results.size() && i < items.size(); ++i) {
                     const api::CommandResult &r = batch.results[i];
                     if (!r.ok)
                         continue;
+                    if (items[i].kind == Kind::Battery) {
+                        // A garbage/absent reading keeps the last good one.
+                        const api::BatteryInfo b = api::parseBatteryInfo(r.value);
+                        if (b.present)
+                            batteries[items[i].channel] = b;
+                        continue;
+                    }
                     api::DetectionState &st = states[items[i].channel];
-                    if (items[i].isAi) {
+                    if (items[i].kind == Kind::Ai) {
                         const api::DetectionState ai = api::parseAiState(r.value);
                         st.person = ai.person;
                         st.vehicle = ai.vehicle;
@@ -262,11 +306,12 @@ void DeviceManager::pollDetections()
             const bool transportOk = batch.transportOk;
             QMetaObject::invokeMethod(
                 this,
-                [this, hostId, key, hp, states, transportOk, chanOnline] {
+                [this, hostId, key, hp, states, batteries, transportOk, chanOnline] {
                     m_pollInFlight[key] = false;
                     applyConnectivity(hostId, transportOk, chanOnline);
                     if (!transportOk)
                         return;
+                    applyBatteries(hostId, batteries);
                     for (int i = 0; i < hp.channels.size(); ++i) {
                         const int channel = hp.channels[i];
                         const QString ckey = detKey(hostId, channel);
