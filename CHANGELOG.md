@@ -33,6 +33,12 @@ While the project is pre-1.0, minor versions may still change behaviour.
   briefly for streams to close, and logout/shutdown (SIGTERM/SIGINT) go
   through the normal quit instead of killing the app mid-stream.
   Ported from upstream PR #22 by greenfanDev.
+- **Short recordings were hard to click on the timeline.** At day zoom a
+  30 s clip is a fraction of a pixel wide. A click in a gap within reach of
+  a recording now starts that recording, the target is outlined and the
+  hover time shows "▶ hh:mm", clips are drawn at least 3 px wide, and an
+  event jump that lands just before its recording starts at that recording.
+  Ported from upstream PR #25 by greenfanDev.
 
 ## [0.2.0] — 2026-11-07
 
