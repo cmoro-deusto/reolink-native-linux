@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import ReolinkApp
 import ReolinkApp.Core
 
-// The live grid: 1/4/9/16 presets, double-click a pane to maximize/restore,
+// The live grid: 1/2/4/6/9/16 presets, double-click a pane to maximize/restore,
 // fullscreen hides all chrome (handled by Main).
 Item {
     id: page
@@ -31,9 +31,10 @@ Item {
         maximizedIndex = row;
         selectedIndex = row;
     }
-    // Column/row counts per preset. 6 is the only non-square layout (3x2).
-    readonly property int cols: preset === 1 ? 1 : preset === 4 ? 2 : (preset === 6 || preset === 9) ? 3 : 4
-    readonly property int rows: preset === 1 ? 1 : (preset === 4 || preset === 6) ? 2 : preset === 9 ? 3 : 4
+    // Column/row counts per preset. 2 (1x2, stacked) and 6 (3x2) are the only
+    // non-square layouts.
+    readonly property int cols: (preset === 1 || preset === 2) ? 1 : preset === 4 ? 2 : (preset === 6 || preset === 9) ? 3 : 4
+    readonly property int rows: preset === 1 ? 1 : (preset === 2 || preset === 4 || preset === 6) ? 2 : preset === 9 ? 3 : 4
 
     // ---- Which camera sits in which pane -----------------------------------
     // paneSlots[pane] = device row (-1 = empty). Without this the grid is a
@@ -196,7 +197,7 @@ Item {
             visible: !page.fullscreen
 
             Repeater {
-                model: [1, 4, 6, 9, 16]
+                model: [1, 2, 4, 6, 9, 16]
                 Rectangle {
                     required property int modelData
                     width: 34
