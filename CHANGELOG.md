@@ -15,6 +15,10 @@ While the project is pre-1.0, minor versions may still change behaviour.
   View toolbar.
 - **Battery levels refresh while the app runs** — every minute, folded into
   the existing per-host status poll, instead of only at connect/Reconnect.
+- **Live View reopens as you left it** — the grid preset (1/2/4/6/9/16) and
+  each camera's SD/HD choice in the grid are remembered across restarts.
+  Maximizing a camera still switches it to HD; restoring it returns to the
+  remembered choice.
 
 ### Fixed
 

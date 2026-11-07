@@ -92,23 +92,43 @@ Item {
     // ---- Layout persistence -------------------------------------------------
     // Stored as "hostId:channel" per pane, because model rows shift whenever a
     // device is added or removed — a saved row index would point at the wrong
-    // camera after the next change.
+    // camera after the next change. The grid preset and each camera's grid
+    // SD/HD choice persist too, so the app reopens as it was left.
     Settings {
         id: layoutStore
         category: "liveGrid"
         property string arrangement: ""
+        property alias preset: page.preset
+        property string hdCameras: "" // comma-separated "hostId:channel"
     }
     property bool layoutRestored: false
+
+    function cameraKey(row) {
+        var c = Devices.cameraInfo(row);
+        return c && c.hostId !== undefined ? c.hostId + ":" + c.channel : "";
+    }
+    // Grid quality preference (maximizing still defaults to HD regardless).
+    function isHd(row) {
+        var key = cameraKey(row);
+        return key !== "" && layoutStore.hdCameras.split(",").indexOf(key) >= 0;
+    }
+    function setHd(row, hd) {
+        var key = cameraKey(row);
+        if (key === "")
+            return;
+        var keys = layoutStore.hdCameras.split(",").filter(k => k !== "" && k !== key);
+        if (hd)
+            keys.push(key);
+        layoutStore.hdCameras = keys.join(",");
+    }
 
     function saveLayout() {
         if (!layoutRestored)
             return;
         var out = [];
         for (var i = 0; i < maxPanes; ++i) {
-            var r = rowAt(i);
-            if (r < 0) { out.push("-"); continue; }
-            var c = Devices.cameraInfo(r);
-            out.push(c && c.hostId !== undefined ? c.hostId + ":" + c.channel : "-");
+            var key = cameraKey(rowAt(i));
+            out.push(key !== "" ? key : "-");
         }
         layoutStore.arrangement = out.join(",");
     }
@@ -122,9 +142,9 @@ Item {
             // Build "hostId:channel" -> row once, then place each saved pane.
             var byKey = ({});
             for (var r = 0; r < Devices.count; ++r) {
-                var c = Devices.cameraInfo(r);
-                if (c && c.hostId !== undefined)
-                    byKey[c.hostId + ":" + c.channel] = r;
+                var k = cameraKey(r);
+                if (k !== "")
+                    byKey[k] = r;
             }
             var parts = saved.split(",");
             var s = [];
@@ -335,8 +355,11 @@ Item {
                     viewRotation: rotationOverride
                     selected: page.selectedIndex === index
                     pageActive: page.active && page.visible
-                    // Sub-stream in the grid, main stream when maximized (DESIGN §5.7).
+                    // Sub-stream in the grid, main stream when maximized (DESIGN §5.7),
+                    // unless the user picked HD for this camera in the grid.
                     forceMain: isMaximized
+                    gridQualityMain: page.isHd(index)
+                    onGridQualityToggled: (hd) => page.setHd(index, hd)
                     capPtz: hasPtz
                     capZoom: hasZoom
                     capAudio: hasAudio

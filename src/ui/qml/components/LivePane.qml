@@ -38,11 +38,13 @@ Rectangle {
     // User stream-quality preference: false = Fluent (sub), true = Clear (main).
     // This alone decides which stream plays — so the SD/HD toolbar toggle works in
     // every layout, including a maximized pane. Maximizing/restoring just seeds a
-    // sensible default (main when big, sub in the grid) via onForceMainChanged; the
-    // user can still override it with the toggle afterwards.
-    property bool qualityMain: false
+    // sensible default (main when big, the saved grid choice otherwise) via
+    // onForceMainChanged; the user can still override it with the toggle afterwards.
+    property bool gridQualityMain: false // persisted grid choice (set by the page)
+    property bool qualityMain: forceMain || gridQualityMain
     readonly property bool effectiveMain: qualityMain
-    onForceMainChanged: qualityMain = forceMain
+    onForceMainChanged: qualityMain = forceMain || gridQualityMain
+    onGridQualityMainChanged: if (!forceMain) qualityMain = gridQualityMain
     readonly property bool hasSource: deviceRow >= 0
     // What this pane is currently streaming: an RTSP URL, or "bc:<row>" for native
     // Baichuan HD live. HD (main) live goes over Baichuan because the NVR's RTSP
@@ -57,6 +59,9 @@ Rectangle {
     signal toggleMaximize(int index)
     signal clicked(int index)
     signal popOut(int deviceRow, string label)
+    // The SD/HD toggle was flipped while in the grid (not maximized), so the
+    // page can remember it for this camera.
+    signal gridQualityToggled(bool main)
     // A camera was dropped onto this pane — from the sidebar or another pane.
     signal cameraDropped(int pane, int row)
 
@@ -464,7 +469,11 @@ Rectangle {
                 glyph: root.qualityMain ? "HD" : "SD"
                 tip: root.qualityMain ? qsTr("Switch to Fluent (SD)") : qsTr("Switch to Clear (HD)")
                 active: root.qualityMain
-                onActivated: root.qualityMain = !root.qualityMain
+                onActivated: {
+                    root.qualityMain = !root.qualityMain;
+                    if (!root.forceMain)
+                        root.gridQualityToggled(root.qualityMain);
+                }
             }
             ToolButton {
                 glyph: "◉"; enabledTool: true
