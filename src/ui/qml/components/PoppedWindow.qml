@@ -14,10 +14,10 @@ Window {
     property int deviceRow: -1
     property string label: ""
 
-    width: 960
-    height: 540
-    minimumWidth: 320
-    minimumHeight: 180
+    width: Theme.px(960)
+    height: Theme.px(540)
+    minimumWidth: Theme.px(320)
+    minimumHeight: Theme.px(180)
     visible: true
     color: Theme.paneBackground
     title: label + " — Reolink Client"
@@ -115,21 +115,21 @@ Window {
         visible: player.state !== StreamPlayer.Streaming
         text: player.state === StreamPlayer.Error ? player.errorString : qsTr("Connecting…")
         color: Theme.textMuted
-        font.pixelSize: 13
+        font.pixelSize: Theme.px(13)
     }
 
     Rectangle { // name overlay
         visible: player.state === StreamPlayer.Streaming
-        anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 8
-        radius: 3; color: "#80000000"
-        width: nmRow.implicitWidth + 12; height: nmRow.implicitHeight + 6
+        anchors.top: parent.top; anchors.left: parent.left; anchors.margins: Theme.px(8)
+        radius: Theme.px(3); color: "#80000000"
+        width: nmRow.implicitWidth + Theme.px(12); height: nmRow.implicitHeight + Theme.px(6)
         Row {
-            id: nmRow; anchors.centerIn: parent; spacing: 6
-            Text { text: win.label; color: "white"; font.pixelSize: 12 }
+            id: nmRow; anchors.centerIn: parent; spacing: Theme.px(6)
+            Text { text: win.label; color: "white"; font.pixelSize: Theme.px(12) }
             Text {
                 visible: win.zoom > 1.01
                 text: win.zoom.toFixed(1) + "×"
-                color: Theme.accent; font.pixelSize: 12
+                color: Theme.accent; font.pixelSize: Theme.px(12)
             }
         }
     }

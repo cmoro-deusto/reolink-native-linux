@@ -11,7 +11,7 @@ import ReolinkApp.Core
 Dialog {
     id: dialog
     modal: true
-    width: 460
+    width: Theme.px(460)
     anchors.centerIn: Overlay.overlay
 
     property string heading: ""
@@ -29,21 +29,21 @@ Dialog {
     background: Rectangle { color: Theme.surface; border.color: Theme.border; radius: Theme.radius }
 
     header: Item {
-        implicitHeight: hdr.implicitHeight + 22
+        implicitHeight: hdr.implicitHeight + Theme.px(22)
         ColumnLayout {
             id: hdr
             x: Theme.spacing; width: parent.width - Theme.spacing * 2
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 2
+            spacing: Theme.px(2)
             Text {
                 Layout.fillWidth: true
                 text: dialog.heading; color: Theme.text
-                font.pixelSize: 16; font.bold: true; elide: Text.ElideRight
+                font.pixelSize: Theme.px(16); font.bold: true; elide: Text.ElideRight
             }
             Text {
                 Layout.fillWidth: true
                 visible: dialog.subheading.length > 0
-                text: dialog.subheading; color: Theme.textMuted; font.pixelSize: 11
+                text: dialog.subheading; color: Theme.textMuted; font.pixelSize: Theme.px(11)
                 elide: Text.ElideRight
             }
         }
@@ -54,14 +54,14 @@ Dialog {
         property bool danger: false
         property bool enabledBtn: true
         signal clicked()
-        implicitWidth: abTxt.implicitWidth + 24
-        implicitHeight: 30
+        implicitWidth: abTxt.implicitWidth + Theme.px(24)
+        implicitHeight: Theme.px(30)
         radius: Theme.radius
         opacity: enabledBtn ? 1 : 0.5
         color: !enabledBtn ? Theme.surface
              : abHover.hovered ? (danger ? Theme.danger : Theme.accentDim) : Theme.surfaceAlt
         border.color: danger ? Theme.danger : Theme.border
-        Text { id: abTxt; anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: 12 }
+        Text { id: abTxt; anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: Theme.px(12) }
         HoverHandler { id: abHover; enabled: parent.enabledBtn }
         TapHandler { enabled: parent.enabledBtn; onTapped: parent.clicked() }
     }
@@ -72,7 +72,7 @@ Dialog {
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.px(8)
             Repeater {
                 model: dialog.rows
                 delegate: RowLayout {
@@ -81,12 +81,12 @@ Dialog {
                     spacing: Theme.spacing
                     Text {
                         text: modelData.label
-                        color: Theme.textMuted; font.pixelSize: 12
-                        Layout.preferredWidth: 140
+                        color: Theme.textMuted; font.pixelSize: Theme.px(12)
+                        Layout.preferredWidth: Theme.px(140)
                     }
                     Text {
                         text: modelData.value
-                        color: Theme.text; font.pixelSize: 12
+                        color: Theme.text; font.pixelSize: Theme.px(12)
                         Layout.fillWidth: true; wrapMode: Text.WrapAnywhere
                     }
                 }

@@ -8,7 +8,7 @@ Dialog {
     id: dialog
     title: qsTr("Add Device")
     modal: true
-    width: 460
+    width: Theme.px(460)
 
     // The device is probed BEFORE anything is persisted, so a typo'd address
     // or rejected password is an inline message here — not a phantom row stuck
@@ -84,14 +84,14 @@ Dialog {
     }
 
     header: Item {
-        implicitHeight: 46
+        implicitHeight: Theme.px(46)
         Text {
             anchors.left: parent.left
             anchors.leftMargin: Theme.spacing * 2
             anchors.verticalCenter: parent.verticalCenter
             text: dialog.title
             color: Theme.text
-            font.pixelSize: 15
+            font.pixelSize: Theme.px(15)
             font.bold: true
         }
         Rectangle {
@@ -102,7 +102,7 @@ Dialog {
     }
 
     footer: Item {
-        implicitHeight: 56
+        implicitHeight: Theme.px(56)
         Rectangle {
             anchors { top: parent.top; left: parent.left; right: parent.right
                       leftMargin: Theme.spacing; rightMargin: Theme.spacing }
@@ -114,30 +114,30 @@ Dialog {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.spacing
             Rectangle {
-                implicitWidth: cancelLbl.implicitWidth + 28; implicitHeight: 34; radius: Theme.radius
+                implicitWidth: cancelLbl.implicitWidth + Theme.px(28); implicitHeight: Theme.px(34); radius: Theme.radius
                 color: cancelHov.hovered ? Theme.surfaceAlt : "transparent"
                 border.color: Theme.border
-                Text { id: cancelLbl; anchors.centerIn: parent; text: qsTr("Cancel"); color: Theme.text; font.pixelSize: 13 }
+                Text { id: cancelLbl; anchors.centerIn: parent; text: qsTr("Cancel"); color: Theme.text; font.pixelSize: Theme.px(13) }
                 HoverHandler { id: cancelHov }
                 TapHandler { onTapped: dialog.reject() }
             }
             Rectangle {
-                implicitWidth: addRow.implicitWidth + 28; implicitHeight: 34; radius: Theme.radius
+                implicitWidth: addRow.implicitWidth + Theme.px(28); implicitHeight: Theme.px(34); radius: Theme.radius
                 color: dialog.testing ? Theme.surfaceAlt
                      : addHov.hovered ? Theme.accent : Theme.accentDim
                 border.color: dialog.testing ? Theme.border : Theme.accent
                 Row {
                     id: addRow
                     anchors.centerIn: parent
-                    spacing: 6
+                    spacing: Theme.px(6)
                     BusyIndicator {
                         visible: dialog.testing; running: visible
-                        width: 14; height: 14
+                        width: Theme.px(14); height: Theme.px(14)
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
                         text: dialog.testing ? qsTr("Checking…") : qsTr("Add")
-                        color: Theme.text; font.pixelSize: 13
+                        color: Theme.text; font.pixelSize: Theme.px(13)
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -168,7 +168,7 @@ Dialog {
         background: Rectangle {
             color: Theme.surfaceAlt
             border.color: parent.activeFocus ? Theme.accent : Theme.border
-            radius: 4
+            radius: Theme.px(4)
         }
     }
 
@@ -186,7 +186,7 @@ Dialog {
                     text: parent.text
                     color: parent.checked ? Theme.text : Theme.textMuted
                     horizontalAlignment: Text.AlignHCenter
-                    font.pixelSize: 13
+                    font.pixelSize: Theme.px(13)
                 }
                 background: Rectangle {
                     color: parent.checked ? Theme.surfaceAlt : "transparent"
@@ -208,25 +208,25 @@ Dialog {
                 RowLayout {
                     Layout.fillWidth: true
                     Rectangle {
-                        implicitWidth: scanText.implicitWidth + 24
-                        height: 30
+                        implicitWidth: scanText.implicitWidth + Theme.px(24)
+                        height: Theme.px(30)
                         radius: Theme.radius
                         color: scanArea.containsMouse && !Discovery.scanning
                              ? Theme.accentDim : Theme.surfaceAlt
                         border.color: Theme.border
                         RowLayout {
                             anchors.centerIn: parent
-                            spacing: 6
+                            spacing: Theme.px(6)
                             BusyIndicator {
                                 running: Discovery.scanning
                                 visible: running
-                                implicitWidth: 16; implicitHeight: 16
+                                implicitWidth: Theme.px(16); implicitHeight: Theme.px(16)
                             }
                             Text {
                                 id: scanText
                                 text: Discovery.scanning ? qsTr("Scanning…") : qsTr("Scan network")
                                 color: Theme.text
-                                font.pixelSize: 12
+                                font.pixelSize: Theme.px(12)
                             }
                         }
                         MouseArea {
@@ -245,7 +245,7 @@ Dialog {
                             : (Discovery.scanning ? qsTr("Looking for Reolink devices…")
                                                   : qsTr("or enter an address below"))
                         color: Theme.textMuted
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.px(11)
                         elide: Text.ElideRight
                     }
                 }
@@ -257,35 +257,35 @@ Dialog {
                     visible: discoveredModel.count > 0
                     color: Theme.paneBackground
                     border.color: Theme.border
-                    radius: 4
+                    radius: Theme.px(4)
                     ListView {
                         anchors.fill: parent
-                        anchors.margins: 2
+                        anchors.margins: Theme.px(2)
                         clip: true
                         model: discoveredModel
                         delegate: Rectangle {
                             required property string ip
                             required property int index
                             width: ListView.view.width
-                            height: 28
+                            height: Theme.px(28)
                             color: addrField.text === ip ? Theme.accentDim
                                  : dHover.hovered ? Theme.surfaceAlt : "transparent"
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 8
-                                Rectangle { width: 7; height: 7; radius: 3.5
+                                anchors.leftMargin: Theme.px(8)
+                                Rectangle { width: Theme.px(7); height: Theme.px(7); radius: Theme.px(3.5)
                                             color: Theme.accent; Layout.alignment: Qt.AlignVCenter }
                                 Text {
                                     text: parent.parent.ip
                                     color: Theme.text
-                                    font.pixelSize: 12
+                                    font.pixelSize: Theme.px(12)
                                 }
                                 Item { Layout.fillWidth: true }
                                 Text {
                                     text: qsTr("Reolink")
                                     color: Theme.textMuted
-                                    font.pixelSize: 10
-                                    rightPadding: 8
+                                    font.pixelSize: Theme.px(10)
+                                    rightPadding: Theme.px(8)
                                 }
                             }
                             HoverHandler { id: dHover }
@@ -314,21 +314,21 @@ Dialog {
                         checked: true
                         Layout.alignment: Qt.AlignVCenter
                         indicator: Rectangle {
-                            implicitWidth: 18; implicitHeight: 18
+                            implicitWidth: Theme.px(18); implicitHeight: Theme.px(18)
                             anchors.verticalCenter: parent.verticalCenter
-                            radius: 4
+                            radius: Theme.px(4)
                             color: httpsCheck.checked ? Theme.accent : Theme.surfaceAlt
                             border.color: httpsCheck.checked ? Theme.accent : Theme.border
                             Text {
                                 anchors.centerIn: parent
                                 text: "\u2713"; visible: httpsCheck.checked
-                                color: Theme.window; font.pixelSize: 12; font.bold: true
+                                color: Theme.window; font.pixelSize: Theme.px(12); font.bold: true
                             }
                         }
                         contentItem: Text {
                             text: qsTr("Use HTTPS")
                             color: Theme.text
-                            font.pixelSize: 12
+                            font.pixelSize: Theme.px(12)
                             leftPadding: httpsCheck.indicator.width + 8
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -343,7 +343,7 @@ Dialog {
                     Layout.fillWidth: true
                     text: qsTr("An NVR adds all its cameras automatically.")
                     color: Theme.textMuted
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.px(11)
                 }
             }
 
@@ -361,7 +361,7 @@ Dialog {
                     Layout.fillWidth: true
                     text: qsTr("For testing and generic RTSP sources.")
                     color: Theme.textMuted
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.px(11)
                     wrapMode: Text.WordWrap
                 }
             }
@@ -374,7 +374,7 @@ Dialog {
             visible: dialog.errorText.length > 0
             text: dialog.errorText
             color: Theme.danger
-            font.pixelSize: 12
+            font.pixelSize: Theme.px(12)
             wrapMode: Text.WordWrap
         }
     }

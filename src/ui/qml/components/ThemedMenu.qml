@@ -6,9 +6,9 @@ import ReolinkApp
 // and clashes with the dark UI, so every context menu uses this instead.
 Menu {
     id: control
-    padding: 5
+    padding: Theme.px(5)
     background: Rectangle {
-        implicitWidth: 190
+        implicitWidth: Theme.px(190)
         color: Theme.surfaceAlt
         border.color: Theme.border
         radius: Theme.radius

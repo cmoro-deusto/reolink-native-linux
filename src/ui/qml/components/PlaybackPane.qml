@@ -185,21 +185,21 @@ Rectangle {
         visible: root.hasSource
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.margins: 6
-        radius: 3
+        anchors.margins: Theme.px(6)
+        radius: Theme.px(3)
         color: "#80000000"
-        width: nameRow.implicitWidth + 12
-        height: nameRow.implicitHeight + 6
+        width: nameRow.implicitWidth + Theme.px(12)
+        height: nameRow.implicitHeight + Theme.px(6)
         Row {
             id: nameRow
             anchors.centerIn: parent
-            spacing: 6
-            Text { text: root.label; color: "white"; font.pixelSize: 11 }
+            spacing: Theme.px(6)
+            Text { text: root.label; color: "white"; font.pixelSize: Theme.px(11) }
             Text {
                 visible: root.zoom > 1.01
                 text: root.zoom.toFixed(1) + "×"
                 color: Theme.accent
-                font.pixelSize: 11
+                font.pixelSize: Theme.px(11)
             }
         }
     }
@@ -212,15 +212,15 @@ Rectangle {
         BusyIndicator {
             anchors.horizontalCenter: parent.horizontalCenter
             running: player.state === StreamPlayer.Connecting
-            visible: running; width: 28; height: 28
+            visible: running; width: Theme.px(28); height: Theme.px(28)
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(implicitWidth, root.width - 20)
+            width: Math.min(implicitWidth, root.width - Theme.px(20))
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             color: player.state === StreamPlayer.Error ? Theme.danger : Theme.textMuted
-            font.pixelSize: 11
+            font.pixelSize: Theme.px(11)
             text: {
                 if (!root.hasSource) return qsTr("No camera");
                 if (player.state === StreamPlayer.Connecting) return qsTr("Connecting…");
@@ -263,8 +263,8 @@ Rectangle {
     Item {
         id: paneDrag
         parent: Window.contentItem
-        width: 190
-        height: 108
+        width: Theme.px(190)
+        height: Theme.px(108)
         visible: Drag.active
         z: 100
         Drag.active: false
@@ -282,12 +282,12 @@ Rectangle {
             opacity: 0.95
             Text {
                 anchors.centerIn: parent
-                width: parent.width - 16
+                width: parent.width - Theme.px(16)
                 horizontalAlignment: Text.AlignHCenter
                 elide: Text.ElideRight
                 text: root.label
                 color: Theme.text
-                font.pixelSize: 12
+                font.pixelSize: Theme.px(12)
             }
         }
     }
@@ -297,9 +297,9 @@ Rectangle {
         visible: root.showHdToggle
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        anchors.margins: 10
-        width: 48
-        height: 28
+        anchors.margins: Theme.px(10)
+        width: Theme.px(48)
+        height: Theme.px(28)
         radius: Theme.radius
         color: root.hdActive ? Theme.accent : (hdHover.hovered ? Theme.surfaceAlt : "#cc0d141b")
         border.color: root.hdActive ? Theme.accent : Theme.border
@@ -308,7 +308,7 @@ Rectangle {
             anchors.centerIn: parent
             text: root.hdActive ? qsTr("HD") : qsTr("SD")
             color: root.hdActive ? Theme.window : Theme.text
-            font.pixelSize: 12
+            font.pixelSize: Theme.px(12)
             font.bold: true
         }
         HoverHandler { id: hdHover }
@@ -322,14 +322,14 @@ Rectangle {
             visible: hdHover.hovered
             delay: 500
             x: (parent.width - width) / 2
-            y: -height - 8
+            y: -height - Theme.px(8)
             contentItem: Text {
                 text: root.hdActive ? qsTr("Switch to SD (light scrubbing)")
                                     : qsTr("Switch to HD (full resolution)")
                 color: Theme.text
-                font.pixelSize: 11
+                font.pixelSize: Theme.px(11)
             }
-            background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+            background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
         }
     }
 
@@ -419,9 +419,9 @@ Rectangle {
         id: paneCombo
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.margins: 6
-        width: Math.min(170, root.width - 12)
-        implicitHeight: 26
+        anchors.margins: Theme.px(6)
+        width: Math.min(Theme.px(170), root.width - Theme.px(12))
+        implicitHeight: Theme.px(26)
         visible: paneHover.hovered || popup.visible
         onActivated: (index) => { if (index !== root.deviceRow) root.cameraRequested(index); }
     }

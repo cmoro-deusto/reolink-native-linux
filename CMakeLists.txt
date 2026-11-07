@@ -51,7 +51,8 @@ target_link_libraries(reolink_core PUBLIC
 # ---------------------------------------------------------------------------
 # Application
 # ---------------------------------------------------------------------------
-qt_add_executable(reolink-client src/main.cpp src/ui/TrayIcon.h src/ui/TrayIcon.cpp)
+qt_add_executable(reolink-client src/main.cpp src/ui/TrayIcon.h src/ui/TrayIcon.cpp
+    src/ui/UiMetrics.h)
 
 set(APP_QML_FILES
     src/ui/qml/Main.qml

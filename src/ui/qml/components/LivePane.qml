@@ -209,8 +209,8 @@ Rectangle {
     Item {
         id: paneDrag
         parent: Window.contentItem
-        width: 190
-        height: 108
+        width: Theme.px(190)
+        height: Theme.px(108)
         visible: Drag.active
         z: 100
         Drag.active: false
@@ -228,12 +228,12 @@ Rectangle {
             opacity: 0.95
             Text {
                 anchors.centerIn: parent
-                width: parent.width - 16
+                width: parent.width - Theme.px(16)
                 horizontalAlignment: Text.AlignHCenter
                 elide: Text.ElideRight
                 text: root.label
                 color: Theme.text
-                font.pixelSize: 12
+                font.pixelSize: Theme.px(12)
             }
         }
     }
@@ -347,21 +347,21 @@ Rectangle {
         visible: root.hasSource && player.state === StreamPlayer.Streaming
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.margins: 6
-        radius: 3
+        anchors.margins: Theme.px(6)
+        radius: Theme.px(3)
         color: "#80000000"
-        width: nameRow.implicitWidth + 12
-        height: nameRow.implicitHeight + 6
+        width: nameRow.implicitWidth + Theme.px(12)
+        height: nameRow.implicitHeight + Theme.px(6)
         Row {
             id: nameRow
             anchors.centerIn: parent
-            spacing: 6
-            Text { text: root.label; color: "white"; font.pixelSize: 11 }
+            spacing: Theme.px(6)
+            Text { text: root.label; color: "white"; font.pixelSize: Theme.px(11) }
             Text {
                 visible: root.zoom > 1.01
                 text: root.zoom.toFixed(1) + "×"
                 color: Theme.accent
-                font.pixelSize: 11
+                font.pixelSize: Theme.px(11)
             }
         }
     }
@@ -376,16 +376,16 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             running: player.state === StreamPlayer.Connecting
             visible: running
-            width: 32
-            height: 32
+            width: Theme.px(32)
+            height: Theme.px(32)
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(implicitWidth, root.width - 20)
+            width: Math.min(implicitWidth, root.width - Theme.px(20))
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             color: player.state === StreamPlayer.Error ? Theme.danger : Theme.textMuted
-            font.pixelSize: 11
+            font.pixelSize: Theme.px(11)
             text: {
                 if (!root.hasSource) return qsTr("No camera");
                 switch (player.state) {
@@ -404,7 +404,7 @@ Rectangle {
         active: root.ptzOpen && root.capPtz
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.rightMargin: 10
+        anchors.rightMargin: Theme.px(10)
         sourceComponent: PtzPad {
             deviceRow: root.deviceRow
             showZoom: root.capZoom
@@ -419,17 +419,17 @@ Rectangle {
         visible: root.hasSource && (paneHover.hovered || root.ptzOpen)
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottomMargin: 8
+        anchors.bottomMargin: Theme.px(8)
         radius: Theme.radius
         color: "#cc0d141b"
         border.color: Theme.border
-        height: 34
-        width: toolRow.implicitWidth + 16
+        height: Theme.px(34)
+        width: toolRow.implicitWidth + Theme.px(16)
 
         Row {
             id: toolRow
             anchors.centerIn: parent
-            spacing: 2
+            spacing: Theme.px(2)
 
             component ToolButton: Rectangle {
                 property string glyph: ""
@@ -437,23 +437,23 @@ Rectangle {
                 property bool active: false
                 property bool enabledTool: true
                 signal activated()
-                width: 28; height: 28; radius: 4
+                width: Theme.px(28); height: Theme.px(28); radius: Theme.px(4)
                 visible: enabledTool
                 color: active ? Theme.accentDim : (hover.hovered ? Theme.surfaceAlt : "transparent")
                 Text {
                     anchors.centerIn: parent
                     text: parent.glyph
                     color: parent.active ? Theme.text : Theme.textMuted
-                    font.pixelSize: 14
+                    font.pixelSize: Theme.px(14)
                 }
                 HoverHandler { id: hover }
                 ToolTip {
                     visible: hover.hovered && tip !== ""
                     delay: 500
                     x: (parent.width - width) / 2
-                    y: -height - 8
-                    contentItem: Text { text: tip; color: Theme.text; font.pixelSize: 11 }
-                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                    y: -height - Theme.px(8)
+                    contentItem: Text { text: tip; color: Theme.text; font.pixelSize: Theme.px(11) }
+                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
                 }
                 // ReleaseWithinBounds takes an exclusive grab on press so the
                 // full-pane MouseArea (click-to-select / pan) behind the video

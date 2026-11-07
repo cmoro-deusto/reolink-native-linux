@@ -6,7 +6,7 @@ import ReolinkApp
 // 1-based. Days that have recordings can be marked via markedDays.
 Column {
     id: root
-    spacing: 6
+    spacing: Theme.px(6)
 
     property int year: 2026
     property int month: 7           // 1-based
@@ -21,9 +21,9 @@ Column {
     RowLayout {
         width: parent.width
         Rectangle {
-            width: 24; height: 24; radius: 4
+            width: Theme.px(24); height: Theme.px(24); radius: Theme.px(4)
             color: prevHover.hovered ? Theme.surfaceAlt : "transparent"
-            Text { anchors.centerIn: parent; text: "‹"; color: Theme.text; font.pixelSize: 16 }
+            Text { anchors.centerIn: parent; text: "‹"; color: Theme.text; font.pixelSize: Theme.px(16) }
             HoverHandler { id: prevHover }
             TapHandler { onTapped: {
                 if (root.month === 1) { root.month = 12; root.year--; }
@@ -35,13 +35,13 @@ Column {
             horizontalAlignment: Text.AlignHCenter
             text: Qt.locale().standaloneMonthName(root.month - 1) + " " + root.year
             color: Theme.text
-            font.pixelSize: 13
+            font.pixelSize: Theme.px(13)
             font.bold: true
         }
         Rectangle {
-            width: 24; height: 24; radius: 4
+            width: Theme.px(24); height: Theme.px(24); radius: Theme.px(4)
             color: nextHover.hovered ? Theme.surfaceAlt : "transparent"
-            Text { anchors.centerIn: parent; text: "›"; color: Theme.text; font.pixelSize: 16 }
+            Text { anchors.centerIn: parent; text: "›"; color: Theme.text; font.pixelSize: Theme.px(16) }
             HoverHandler { id: nextHover }
             TapHandler { onTapped: {
                 if (root.month === 12) { root.month = 1; root.year++; }
@@ -52,23 +52,23 @@ Column {
 
     Grid {
         columns: 7
-        spacing: 2
+        spacing: Theme.px(2)
         Repeater {
             model: ["S", "M", "T", "W", "T", "F", "S"]
             Text {
                 required property string modelData
-                width: 30; height: 18
+                width: Theme.px(30); height: Theme.px(18)
                 horizontalAlignment: Text.AlignHCenter
                 text: modelData
                 color: Theme.textMuted
-                font.pixelSize: 10
+                font.pixelSize: Theme.px(10)
             }
         }
     }
 
     Grid {
         columns: 7
-        spacing: 2
+        spacing: Theme.px(2)
         Repeater {
             model: 42
             Item {
@@ -76,10 +76,10 @@ Column {
                 property int dayNum: index - root.firstWeekday(root.year, root.month) + 1
                 property bool valid: dayNum >= 1 && dayNum <= root.daysInMonth(root.year, root.month)
                 property bool selected: valid && dayNum === root.selDay
-                width: 30; height: 28
+                width: Theme.px(30); height: Theme.px(28)
                 Rectangle {
                     anchors.fill: parent
-                    radius: 4
+                    radius: Theme.px(4)
                     visible: parent.valid
                     color: parent.selected ? Theme.accentDim
                          : dayHover.hovered ? Theme.surfaceAlt : "transparent"
@@ -87,14 +87,14 @@ Column {
                         anchors.centerIn: parent
                         text: parent.parent.valid ? parent.parent.dayNum : ""
                         color: parent.parent.selected ? Theme.text : Theme.textMuted
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.px(11)
                     }
                     Rectangle { // recording marker
                         visible: root.markedDays.indexOf(parent.parent.dayNum) >= 0
-                        width: 4; height: 4; radius: 2
+                        width: Theme.px(4); height: Theme.px(4); radius: Theme.px(2)
                         color: Theme.accent
                         anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 2
+                        anchors.bottomMargin: Theme.px(2)
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
                     HoverHandler { id: dayHover; enabled: parent.parent.valid }

@@ -12,19 +12,19 @@ RowLayout {
     spacing: Theme.spacing
 
     ColumnLayout {
-        Layout.preferredWidth: 200
+        Layout.preferredWidth: Theme.px(200)
         spacing: 1
         Text {
             text: root.label
             color: Theme.text
-            font.pixelSize: 13
+            font.pixelSize: Theme.px(13)
         }
         Text {
             visible: root.hint.length > 0
             text: root.hint
             color: Theme.textMuted
-            font.pixelSize: 10
-            Layout.maximumWidth: 200
+            font.pixelSize: Theme.px(10)
+            Layout.maximumWidth: Theme.px(200)
             wrapMode: Text.WordWrap
         }
     }

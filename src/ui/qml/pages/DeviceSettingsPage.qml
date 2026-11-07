@@ -184,7 +184,7 @@ Item {
 
         // ---- Category sidebar ----
         Rectangle {
-            Layout.preferredWidth: 200
+            Layout.preferredWidth: Theme.px(200)
             Layout.fillHeight: true
             color: Theme.surface
             border.color: Theme.border
@@ -193,9 +193,9 @@ Item {
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Theme.spacing
-                spacing: 6
+                spacing: Theme.px(6)
 
-                Text { text: qsTr("Camera:"); color: Theme.textMuted; font.pixelSize: 11 }
+                Text { text: qsTr("Camera:"); color: Theme.textMuted; font.pixelSize: Theme.px(11) }
                 CameraComboBox {
                     id: deviceCombo
                     Layout.fillWidth: true
@@ -213,17 +213,17 @@ Item {
                     Rectangle {
                         required property var modelData
                         Layout.fillWidth: true
-                        height: 34
-                        radius: 4
+                        height: Theme.px(34)
+                        radius: Theme.px(4)
                         color: page.category === modelData.key ? Theme.accentDim
                              : catHover.hovered ? Theme.surfaceAlt : "transparent"
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.left: parent.left
-                            anchors.leftMargin: 10
+                            anchors.leftMargin: Theme.px(10)
                             text: modelData.label
                             color: page.category === modelData.key ? Theme.text : Theme.textMuted
-                            font.pixelSize: 13
+                            font.pixelSize: Theme.px(13)
                         }
                         HoverHandler { id: catHover }
                         TapHandler { onTapped: { page.category = modelData.key; page.fetch(); } }
@@ -235,7 +235,7 @@ Item {
                     Layout.fillWidth: true
                     text: qsTr("Read-only (not an admin account)")
                     color: Theme.textMuted
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.px(10)
                     wrapMode: Text.WordWrap
                 }
             }
@@ -264,11 +264,11 @@ Item {
                             return "";
                         }
                         color: Theme.text
-                        font.pixelSize: 18
+                        font.pixelSize: Theme.px(18)
                         font.bold: true
                     }
                     Item { Layout.fillWidth: true }
-                    Text { text: page.status; color: Theme.textMuted; font.pixelSize: 12 }
+                    Text { text: page.status; color: Theme.textMuted; font.pixelSize: Theme.px(12) }
                 }
                 Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
 
@@ -333,7 +333,7 @@ Item {
         signal commit(int v)
         Layout.fillWidth: true
         spacing: Theme.spacing
-        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: 12; Layout.preferredWidth: 150 }
+        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: Theme.px(12); Layout.preferredWidth: Theme.px(150) }
         Slider {
             id: sld
             Layout.fillWidth: true
@@ -343,7 +343,7 @@ Item {
             stepSize: 1
             onPressedChanged: if (!pressed) parent.commit(Math.round(value))
         }
-        Text { text: Math.round(sld.value); color: Theme.text; font.pixelSize: 12; Layout.preferredWidth: 32 }
+        Text { text: Math.round(sld.value); color: Theme.text; font.pixelSize: Theme.px(12); Layout.preferredWidth: Theme.px(32) }
     }
 
     // A labeled dropdown of string options; writes the chosen option on change.
@@ -355,10 +355,10 @@ Item {
         signal commit(string v)
         Layout.fillWidth: true
         spacing: Theme.spacing
-        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: 12; Layout.preferredWidth: 150 }
+        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: Theme.px(12); Layout.preferredWidth: Theme.px(150) }
         ComboBox {
             id: cb
-            Layout.preferredWidth: 200
+            Layout.preferredWidth: Theme.px(200)
             enabled: parent.enabledCtl
             model: parent.options
             currentIndex: Math.max(0, parent.options.indexOf(parent.value))
@@ -374,7 +374,7 @@ Item {
         signal commit(bool v)
         Layout.fillWidth: true
         spacing: Theme.spacing
-        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: 12; Layout.preferredWidth: 150 }
+        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: Theme.px(12); Layout.preferredWidth: Theme.px(150) }
         Switch { checked: parent.checked; enabled: parent.enabledCtl; onToggled: parent.commit(checked) }
         Item { Layout.fillWidth: true }
     }
@@ -389,7 +389,7 @@ Item {
                 visible: parent.noData
                 spacing: Theme.spacing
                 Text { text: qsTr("Image settings couldn't be read from the camera.")
-                       color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                       color: Theme.text; font.pixelSize: Theme.px(14); Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 Item { Layout.fillHeight: true }
             }
             ColumnLayout {
@@ -443,7 +443,7 @@ Item {
                 Item { Layout.fillHeight: true }
                 Text {
                     text: qsTr("Over the native Baichuan protocol — no web-server timeouts.")
-                    color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                    color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap
                 }
             }
         }
@@ -454,7 +454,7 @@ Item {
         id: detectionPanel
         ColumnLayout {
             spacing: Theme.spacing
-            Text { text: qsTr("Motion detection"); color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Text { text: qsTr("Motion detection"); color: Theme.text; font.pixelSize: Theme.px(13); font.bold: true }
             SliderRow {
                 label: qsTr("Sensitivity"); from: 1; to: 50; enabledCtl: page.isAdmin
                 value: parseInt(page.md.sensitivity || "25")
@@ -464,21 +464,21 @@ Item {
             // Detection-zone (grid mask) editor — disable detection over parts of
             // the frame, like the Windows app. Enabled once MdAlarm has loaded.
             Rectangle {
-                Layout.fillWidth: true; implicitHeight: 36; radius: Theme.radius
+                Layout.fillWidth: true; implicitHeight: Theme.px(36); radius: Theme.radius
                 readonly property bool ready: page.isAdmin && page.md.valueTable !== undefined
                 color: dzHover.hovered && ready ? Theme.surfaceAlt : Theme.surface
                 border.color: Theme.border
                 opacity: ready ? 1 : 0.5
                 RowLayout {
-                    anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
-                    Text { text: qsTr("Detection zone"); color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
-                    Text { text: qsTr("Edit\u2026"); color: Theme.accent; font.pixelSize: 12 }
+                    anchors.fill: parent; anchors.leftMargin: Theme.px(12); anchors.rightMargin: Theme.px(12)
+                    Text { text: qsTr("Detection zone"); color: Theme.text; font.pixelSize: Theme.px(13); Layout.fillWidth: true }
+                    Text { text: qsTr("Edit\u2026"); color: Theme.accent; font.pixelSize: Theme.px(12) }
                 }
                 HoverHandler { id: dzHover }
                 TapHandler { onTapped: if (parent.ready) zoneDialog.openFor(page.deviceRow, page.md) }
             }
             Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
-            Text { text: qsTr("Smart (AI) detection"); color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Text { text: qsTr("Smart (AI) detection"); color: Theme.text; font.pixelSize: Theme.px(13); font.bold: true }
             SwitchRow {
                 label: qsTr("People"); enabledCtl: page.isAdmin
                 checked: page.val("GetAiCfg","AiDetectType","people") === 1
@@ -519,7 +519,7 @@ Item {
             }
 
             Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
-            Text { text: qsTr("Alerts"); color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Text { text: qsTr("Alerts"); color: Theme.text; font.pixelSize: Theme.px(13); font.bold: true }
             SwitchRow {
                 label: qsTr("Push notifications")
                 enabledCtl: page.isAdmin && page.alerts.ok === true
@@ -541,12 +541,12 @@ Item {
             Text {
                 visible: page.alerts.ok === false
                 text: qsTr("Alert settings couldn't be read from the device.")
-                color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             Item { Layout.fillHeight: true }
             Text {
                 text: qsTr("Detection zones and per-type sensitivity/schedules are on the roadmap.")
-                color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
         }
     }
@@ -563,7 +563,7 @@ Item {
                         + (page.val("GetEnc","Enc","mainStream","bitRate") || "—") + " kbps  ·  "
                         + (page.val("GetEnc","Enc","mainStream","frameRate") || "—") + " fps  ·  "
                         + String(page.val("GetEnc","Enc","mainStream","vType") || "—").toUpperCase()
-                    color: Theme.textMuted; font.pixelSize: 12
+                    color: Theme.textMuted; font.pixelSize: Theme.px(12)
                 }
             }
             SettingRow {
@@ -572,7 +572,7 @@ Item {
                     text: (page.val("GetEnc","Enc","subStream","size") || "—") + "  ·  "
                         + (page.val("GetEnc","Enc","subStream","bitRate") || "—") + " kbps  ·  "
                         + (page.val("GetEnc","Enc","subStream","frameRate") || "—") + " fps"
-                    color: Theme.textMuted; font.pixelSize: 12
+                    color: Theme.textMuted; font.pixelSize: Theme.px(12)
                 }
             }
             SettingRow {
@@ -587,7 +587,7 @@ Item {
             Item { Layout.fillHeight: true }
             Text {
                 text: qsTr("Resolution/bitrate/framerate options populate from the device's GetEnc ranges.")
-                color: Theme.textMuted; font.pixelSize: 11
+                color: Theme.textMuted; font.pixelSize: Theme.px(11)
             }
         }
     }
@@ -618,11 +618,11 @@ Item {
             SettingRow {
                 label: qsTr("Camera name")
                 TextField {
-                    Layout.preferredWidth: 200
+                    Layout.preferredWidth: Theme.px(200)
                     text: page.val("GetOsd","Osd","osdChannel","name") || ""
                     enabled: page.isAdmin
                     color: Theme.text
-                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
                     onEditingFinished: Devices.applySetting(page.deviceRow, "SetOsd",
                         { "Osd": { "channel": Devices.channelOf(page.deviceRow), "osdChannel": { "name": text } } })
                 }
@@ -630,7 +630,7 @@ Item {
             Item { Layout.fillHeight: true }
             Text {
                 text: qsTr("Brightness, contrast, day/night and IR settings load from GetImage/GetIsp.")
-                color: Theme.textMuted; font.pixelSize: 11
+                color: Theme.textMuted; font.pixelSize: Theme.px(11)
             }
         }
     }
@@ -641,19 +641,19 @@ Item {
         ColumnLayout {
             spacing: Theme.spacing
             SettingRow { label: qsTr("Name")
-                Text { text: page.val("GetDevInfo","DevInfo","name") || "—"; color: Theme.textMuted; font.pixelSize: 12 } }
+                Text { text: page.val("GetDevInfo","DevInfo","name") || "—"; color: Theme.textMuted; font.pixelSize: Theme.px(12) } }
             SettingRow { label: qsTr("Model")
-                Text { text: page.val("GetDevInfo","DevInfo","model") || "—"; color: Theme.textMuted; font.pixelSize: 12 } }
+                Text { text: page.val("GetDevInfo","DevInfo","model") || "—"; color: Theme.textMuted; font.pixelSize: Theme.px(12) } }
             SettingRow { label: qsTr("Firmware")
-                Text { text: page.val("GetDevInfo","DevInfo","firmVer") || "—"; color: Theme.textMuted; font.pixelSize: 12 } }
+                Text { text: page.val("GetDevInfo","DevInfo","firmVer") || "—"; color: Theme.textMuted; font.pixelSize: Theme.px(12) } }
             SettingRow { label: qsTr("Hardware")
-                Text { text: page.val("GetDevInfo","DevInfo","hardVer") || "—"; color: Theme.textMuted; font.pixelSize: 12 } }
+                Text { text: page.val("GetDevInfo","DevInfo","hardVer") || "—"; color: Theme.textMuted; font.pixelSize: Theme.px(12) } }
             SettingRow { label: qsTr("Channels")
-                Text { text: String(page.val("GetDevInfo","DevInfo","channelNum") || "—"); color: Theme.textMuted; font.pixelSize: 12 } }
+                Text { text: String(page.val("GetDevInfo","DevInfo","channelNum") || "—"); color: Theme.textMuted; font.pixelSize: Theme.px(12) } }
             Item { Layout.fillHeight: true }
             Rectangle {
-                implicitWidth: rebootText.implicitWidth + 24
-                height: 32
+                implicitWidth: rebootText.implicitWidth + Theme.px(24)
+                height: Theme.px(32)
                 radius: Theme.radius
                 color: page.isAdmin ? (rebootHover.hovered ? Theme.danger : Theme.surfaceAlt) : Theme.surface
                 border.color: page.isAdmin ? Theme.danger : Theme.border
@@ -663,7 +663,7 @@ Item {
                     anchors.centerIn: parent
                     text: qsTr("Reboot device")
                     color: page.isAdmin ? Theme.text : Theme.textMuted
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                 }
                 HoverHandler { id: rebootHover; enabled: page.isAdmin }
                 TapHandler { enabled: page.isAdmin; onTapped: Devices.reboot(page.deviceRow) }
@@ -677,8 +677,8 @@ Item {
         property string value: ""
         Layout.fillWidth: true
         spacing: Theme.spacing
-        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: 12; Layout.preferredWidth: 160 }
-        Text { text: parent.value.length ? parent.value : "—"; color: Theme.text; font.pixelSize: 12
+        Text { text: parent.label; color: Theme.textMuted; font.pixelSize: Theme.px(12); Layout.preferredWidth: Theme.px(160) }
+        Text { text: parent.value.length ? parent.value : "—"; color: Theme.text; font.pixelSize: Theme.px(12)
                Layout.fillWidth: true; wrapMode: Text.WrapAnywhere }
     }
 
@@ -692,7 +692,7 @@ Item {
                 visible: parent.noData
                 spacing: Theme.spacing
                 Text { text: qsTr("Recording settings couldn't be read from the device.")
-                       color: Theme.text; font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                       color: Theme.text; font.pixelSize: Theme.px(14); Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 Item { Layout.fillHeight: true }
             }
             ColumnLayout {
@@ -706,15 +706,15 @@ Item {
                 }
                 // Weekly per-type recording schedule (7x24 grid, cmd 81/82).
                 Rectangle {
-                    Layout.fillWidth: true; implicitHeight: 36; radius: Theme.radius
+                    Layout.fillWidth: true; implicitHeight: Theme.px(36); radius: Theme.radius
                     readonly property bool ready: page.isAdmin && Object.keys(page.recSched).length > 0
                     color: schedHover.hovered && ready ? Theme.surfaceAlt : Theme.surface
                     border.color: Theme.border
                     opacity: ready ? 1 : 0.5
                     RowLayout {
-                        anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
-                        Text { text: qsTr("Recording schedule"); color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
-                        Text { text: qsTr("Edit\u2026"); color: Theme.accent; font.pixelSize: 12 }
+                        anchors.fill: parent; anchors.leftMargin: Theme.px(12); anchors.rightMargin: Theme.px(12)
+                        Text { text: qsTr("Recording schedule"); color: Theme.text; font.pixelSize: Theme.px(13); Layout.fillWidth: true }
+                        Text { text: qsTr("Edit\u2026"); color: Theme.accent; font.pixelSize: Theme.px(12) }
                     }
                     HoverHandler { id: schedHover }
                     TapHandler { onTapped: if (parent.ready) schedDialog.openFor(page.deviceRow, page.recSched) }
@@ -733,7 +733,7 @@ Item {
                     value: (page.rec.packageTime !== undefined ? page.rec.packageTime + qsTr(" min") : "") }
                 Item { Layout.fillHeight: true }
                 Text { text: qsTr("Over native Baichuan. The weekly schedule grid is on the roadmap.")
-                       color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                       color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap }
             }
         }
     }
@@ -751,7 +751,7 @@ Item {
             InfoRow { label: qsTr("Subnet mask"); value: page.val("GetLocalLink","LocalLink","static","mask") || "" }
             InfoRow { label: qsTr("MAC address"); value: page.val("GetLocalLink","LocalLink","mac") || "" }
             Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
-            Text { text: qsTr("Ports"); color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Text { text: qsTr("Ports"); color: Theme.text; font.pixelSize: Theme.px(13); font.bold: true }
             InfoRow { label: qsTr("RTSP")
                 value: (page.val("GetNetPort","NetPort","rtspPort") || "—")
                      + (page.val("GetNetPort","NetPort","rtspEnable") === 1 ? "" : qsTr("  (disabled)")) }
@@ -763,7 +763,7 @@ Item {
                      + (page.val("GetNetPort","NetPort","httpsEnable") === 1 ? "" : qsTr("  (disabled)")) }
             Item { Layout.fillHeight: true }
             Text { text: qsTr("Port and IP changes are read-only here — editing them from the app could lock out access.")
-                   color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                   color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap }
         }
     }
 
@@ -789,10 +789,10 @@ Item {
                     }
                     Rectangle {
                         visible: page.isAdmin
-                        implicitWidth: fmtTxt.implicitWidth + 16; implicitHeight: 24; radius: 4
+                        implicitWidth: fmtTxt.implicitWidth + Theme.px(16); implicitHeight: Theme.px(24); radius: Theme.px(4)
                         color: fmtHover.hovered ? Theme.danger : Theme.surfaceAlt
                         border.color: Theme.danger
-                        Text { id: fmtTxt; anchors.centerIn: parent; text: qsTr("Format"); color: Theme.text; font.pixelSize: 11 }
+                        Text { id: fmtTxt; anchors.centerIn: parent; text: qsTr("Format"); color: Theme.text; font.pixelSize: Theme.px(11) }
                         HoverHandler { id: fmtHover }
                         TapHandler { onTapped: page.confirmFormat(modelData.number || 0,
                             qsTr("Disk %1").arg((modelData.number !== undefined ? modelData.number : 0) + 1)) }
@@ -801,11 +801,11 @@ Item {
             }
             Text { visible: (page.val("GetHddInfo","HddInfo") || []).length === 0
                    text: page.status === "" ? qsTr("No storage reported.") : qsTr("Loading…")
-                   color: Theme.textMuted; font.pixelSize: 12 }
+                   color: Theme.textMuted; font.pixelSize: Theme.px(12) }
             Item { Layout.fillHeight: true }
             Text { visible: !page.isAdmin
                    text: qsTr("Formatting a disk requires an administrator account.")
-                   color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                   color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap }
         }
     }
 
@@ -819,10 +819,10 @@ Item {
                 property string label: ""
                 property bool danger: false
                 signal clicked()
-                implicitWidth: mbTxt.implicitWidth + 16; implicitHeight: 24; radius: 4
+                implicitWidth: mbTxt.implicitWidth + Theme.px(16); implicitHeight: Theme.px(24); radius: Theme.px(4)
                 color: mbHover.hovered ? (danger ? Theme.danger : Theme.accentDim) : Theme.surfaceAlt
                 border.color: danger ? Theme.danger : Theme.border
-                Text { id: mbTxt; anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: 11 }
+                Text { id: mbTxt; anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: Theme.px(11) }
                 HoverHandler { id: mbHover }
                 TapHandler { onTapped: parent.clicked() }
             }
@@ -834,13 +834,13 @@ Item {
                     property bool confirming: false
                     Layout.fillWidth: true
                     spacing: Theme.spacing
-                    Text { text: "👤"; font.pixelSize: 12 }
-                    Text { text: modelData.userName || "—"; color: Theme.text; font.pixelSize: 13; Layout.fillWidth: true }
+                    Text { text: "👤"; font.pixelSize: Theme.px(12) }
+                    Text { text: modelData.userName || "—"; color: Theme.text; font.pixelSize: Theme.px(13); Layout.fillWidth: true }
                     Rectangle {
-                        radius: 3; color: Theme.surfaceAlt; border.color: Theme.border
-                        implicitWidth: lvl.implicitWidth + 12; implicitHeight: lvl.implicitHeight + 4
+                        radius: Theme.px(3); color: Theme.surfaceAlt; border.color: Theme.border
+                        implicitWidth: lvl.implicitWidth + Theme.px(12); implicitHeight: lvl.implicitHeight + Theme.px(4)
                         Text { id: lvl; anchors.centerIn: parent
-                               text: modelData.level || ""; color: Theme.textMuted; font.pixelSize: 11 }
+                               text: modelData.level || ""; color: Theme.textMuted; font.pixelSize: Theme.px(11) }
                     }
                     MiniBtn {
                         visible: page.isAdmin
@@ -865,7 +865,7 @@ Item {
             }
             Text { visible: (page.val("GetUser","User") || []).length === 0
                    text: page.status === "" ? qsTr("No users reported.") : qsTr("Loading…")
-                   color: Theme.textMuted; font.pixelSize: 12 }
+                   color: Theme.textMuted; font.pixelSize: Theme.px(12) }
             Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border; visible: page.isAdmin }
             MiniBtn {
                 visible: page.isAdmin
@@ -875,7 +875,7 @@ Item {
             Item { Layout.fillHeight: true }
             Text { visible: !page.isAdmin
                    text: qsTr("Managing users requires an administrator account.")
-                   color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                   color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap }
         }
     }
 
@@ -900,7 +900,7 @@ Item {
                     return "UTC" + (h >= 0 ? "+" : "") + h;
                 } }
             Rectangle { Layout.fillWidth: true; height: 1; color: Theme.border }
-            Text { text: qsTr("Network time (NTP)"); color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Text { text: qsTr("Network time (NTP)"); color: Theme.text; font.pixelSize: Theme.px(13); font.bold: true }
             SwitchRow {
                 label: qsTr("Sync from NTP"); enabledCtl: page.isAdmin
                 checked: page.val("GetNtp","Ntp","enable") === 1
@@ -912,14 +912,14 @@ Item {
             }
             RowLayout {
                 Layout.fillWidth: true; spacing: Theme.spacing
-                Text { text: qsTr("NTP server"); color: Theme.textMuted; font.pixelSize: 12; Layout.preferredWidth: 160 }
+                Text { text: qsTr("NTP server"); color: Theme.textMuted; font.pixelSize: Theme.px(12); Layout.preferredWidth: Theme.px(160) }
                 TextField {
                     id: ntpServer
                     Layout.fillWidth: true
                     enabled: page.isAdmin
                     text: page.val("GetNtp","Ntp","server") || ""
                     color: Theme.text
-                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
                     onEditingFinished: if (text.length > 0) Devices.applySetting(page.deviceRow, "SetNtp",
                         { "Ntp": { "enable": page.val("GetNtp","Ntp","enable") || 1, "server": text,
                                    "port": page.val("GetNtp","Ntp","port") || 123,
@@ -928,7 +928,7 @@ Item {
             }
             Item { Layout.fillHeight: true }
             Text { text: qsTr("Time zone / manual-clock editing is on the roadmap.")
-                   color: Theme.textMuted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                   color: Theme.textMuted; font.pixelSize: Theme.px(11); Layout.fillWidth: true; wrapMode: Text.WordWrap }
         }
     }
 
@@ -943,7 +943,7 @@ Item {
                         ? qsTr("Loading settings from the device…")
                         : qsTr("This category's controls populate from the device response.")
                 color: Theme.textMuted
-                font.pixelSize: 13
+                font.pixelSize: Theme.px(13)
             }
             // Raw fetched values (useful until each category has a bespoke form).
             Text {
@@ -951,7 +951,7 @@ Item {
                 visible: Object.keys(page.settings).length > 0
                 text: JSON.stringify(page.settings, null, 2)
                 color: Theme.textMuted
-                font.pixelSize: 10
+                font.pixelSize: Theme.px(10)
                 font.family: "monospace"
                 wrapMode: Text.WrapAnywhere
             }

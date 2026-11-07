@@ -220,8 +220,8 @@ Item {
                 model: [1, 2, 4, 6, 9, 16]
                 Rectangle {
                     required property int modelData
-                    width: 34
-                    height: 26
+                    width: Theme.px(34)
+                    height: Theme.px(26)
                     radius: Theme.radius
                     color: page.activePreset === modelData ? Theme.accentDim
                          : presetArea.containsMouse ? Theme.surfaceAlt : Theme.surface
@@ -230,7 +230,7 @@ Item {
                         anchors.centerIn: parent
                         text: parent.modelData
                         color: page.activePreset === parent.modelData ? Theme.text : Theme.textMuted
-                        font.pixelSize: 12
+                        font.pixelSize: Theme.px(12)
                     }
                     MouseArea {
                         id: presetArea
@@ -246,13 +246,13 @@ Item {
                         visible: presetArea.containsMouse
                         delay: 500
                         x: (parent.width - width) / 2
-                        y: parent.height + 6
+                        y: parent.height + Theme.px(6)
                         contentItem: Text {
                             text: modelData === 1 ? qsTr("Single pane")
                                 : qsTr("%1-pane grid").arg(modelData)
-                            color: Theme.text; font.pixelSize: 11
+                            color: Theme.text; font.pixelSize: Theme.px(11)
                         }
-                        background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                        background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
                     }
                 }
             }
@@ -260,8 +260,8 @@ Item {
             Item { Layout.fillWidth: true }
 
             Rectangle {
-                width: 34
-                height: 26
+                width: Theme.px(34)
+                height: Theme.px(26)
                 radius: Theme.radius
                 color: fsArea.containsMouse ? Theme.surfaceAlt : Theme.surface
                 border.color: Theme.border
@@ -269,7 +269,7 @@ Item {
                     anchors.centerIn: parent
                     text: "⛶"
                     color: Theme.textMuted
-                    font.pixelSize: 13
+                    font.pixelSize: Theme.px(13)
                 }
                 MouseArea {
                     id: fsArea
@@ -282,9 +282,9 @@ Item {
                     visible: fsArea.containsMouse
                     delay: 500
                     x: (parent.width - width) / 2
-                    y: parent.height + 6
-                    contentItem: Text { text: qsTr("Fullscreen (F11)"); color: Theme.text; font.pixelSize: 11 }
-                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                    y: parent.height + Theme.px(6)
+                    contentItem: Text { text: qsTr("Fullscreen (F11)"); color: Theme.text; font.pixelSize: Theme.px(11) }
+                    background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
                 }
             }
         }
@@ -302,7 +302,7 @@ Item {
             // Panes are placed by their assigned slot rather than by model order,
             // so a camera can sit in any cell. Positioning is explicit (not a
             // Grid) because the slot, not the child order, decides the cell.
-            readonly property int gap: 4
+            readonly property int gap: Theme.px(4)
             function slotX(slot) { return (slot % page.cols) * (cellWidth + gap); }
             function slotY(slot) { return Math.floor(slot / page.cols) * (cellHeight + gap); }
 

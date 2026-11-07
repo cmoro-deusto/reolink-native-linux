@@ -9,7 +9,7 @@ import ReolinkApp.Core
 Dialog {
     id: dialog
     modal: true
-    width: 420
+    width: Theme.px(420)
     anchors.centerIn: Overlay.overlay
 
     property string message: ""
@@ -28,31 +28,31 @@ Dialog {
         Text {
             Layout.fillWidth: true
             text: dialog.message
-            color: Theme.text; font.pixelSize: 13; wrapMode: Text.WordWrap
+            color: Theme.text; font.pixelSize: Theme.px(13); wrapMode: Text.WordWrap
         }
         Text {
             Layout.fillWidth: true
             visible: dialog.detail.length > 0
             text: dialog.detail
-            color: Theme.danger; font.pixelSize: 12; wrapMode: Text.WordWrap
+            color: Theme.danger; font.pixelSize: Theme.px(12); wrapMode: Text.WordWrap
         }
         RowLayout {
             Layout.fillWidth: true
             Layout.topMargin: Theme.spacing
             Item { Layout.fillWidth: true }
             Rectangle {
-                implicitWidth: cxTxt.implicitWidth + 24; implicitHeight: 32; radius: Theme.radius
+                implicitWidth: cxTxt.implicitWidth + Theme.px(24); implicitHeight: Theme.px(32); radius: Theme.radius
                 color: cxHover.hovered ? Theme.surfaceAlt : "transparent"
                 border.color: Theme.border
-                Text { id: cxTxt; anchors.centerIn: parent; text: qsTr("Cancel"); color: Theme.text; font.pixelSize: 12 }
+                Text { id: cxTxt; anchors.centerIn: parent; text: qsTr("Cancel"); color: Theme.text; font.pixelSize: Theme.px(12) }
                 HoverHandler { id: cxHover }
                 TapHandler { onTapped: dialog.close() }
             }
             Rectangle {
-                implicitWidth: okTxt.implicitWidth + 24; implicitHeight: 32; radius: Theme.radius
+                implicitWidth: okTxt.implicitWidth + Theme.px(24); implicitHeight: Theme.px(32); radius: Theme.radius
                 color: okHover.hovered ? Theme.danger : Theme.surfaceAlt
                 border.color: Theme.danger
-                Text { id: okTxt; anchors.centerIn: parent; text: dialog.confirmLabel; color: Theme.text; font.pixelSize: 12 }
+                Text { id: okTxt; anchors.centerIn: parent; text: dialog.confirmLabel; color: Theme.text; font.pixelSize: Theme.px(12) }
                 HoverHandler { id: okHover }
                 TapHandler { onTapped: { dialog.confirmed(dialog.payload); dialog.close(); } }
             }

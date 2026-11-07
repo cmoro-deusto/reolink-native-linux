@@ -21,8 +21,8 @@ Rectangle {
     radius: Theme.radius
     border.color: Theme.accent
     border.width: 2
-    width: 360
-    height: 300
+    width: Theme.px(360)
+    height: Theme.px(300)
 
     onActiveChanged: if (active) autoDismiss.restart()
     Timer { id: autoDismiss; interval: 30000; onTriggered: { root.active = false; root.dismissed(); } }
@@ -34,11 +34,11 @@ Rectangle {
 
         RowLayout {
             Layout.fillWidth: true
-            Text { text: "🔔"; font.pixelSize: 22 }
+            Text { text: "🔔"; font.pixelSize: Theme.px(22) }
             ColumnLayout {
                 spacing: 0
-                Text { text: qsTr("Someone's at the door"); color: Theme.text; font.pixelSize: 15; font.bold: true }
-                Text { text: root.camera; color: Theme.textMuted; font.pixelSize: 12 }
+                Text { text: qsTr("Someone's at the door"); color: Theme.text; font.pixelSize: Theme.px(15); font.bold: true }
+                Text { text: root.camera; color: Theme.textMuted; font.pixelSize: Theme.px(12) }
             }
             Item { Layout.fillWidth: true }
         }
@@ -49,12 +49,12 @@ Rectangle {
             Layout.fillHeight: true
             color: Theme.paneBackground
             border.color: Theme.border
-            radius: 4
+            radius: Theme.px(4)
             Text {
                 anchors.centerIn: parent
                 text: qsTr("Live view")
                 color: Theme.textMuted
-                font.pixelSize: 11
+                font.pixelSize: Theme.px(11)
             }
         }
 
@@ -67,11 +67,11 @@ Rectangle {
                 property color tint: Theme.surfaceAlt
                 signal clicked()
                 Layout.fillWidth: true
-                height: 40
+                height: Theme.px(40)
                 radius: Theme.radius
                 color: abHover.hovered ? Qt.lighter(tint, 1.2) : tint
                 border.color: Theme.border
-                Text { anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: 13; font.bold: true }
+                Text { anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: Theme.px(13); font.bold: true }
                 HoverHandler { id: abHover }
                 TapHandler { onTapped: parent.clicked() }
             }

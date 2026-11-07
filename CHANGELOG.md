@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
+## [Unreleased]
+
+### Fixed
+
+- **The interface ignored the desktop's font size.** Every text size and most
+  dimensions were fixed pixels designed around a 10 pt system font, so with a
+  larger font (e.g. KDE at 13 pt) the app's text came out about a third
+  smaller than the rest of the desktop. The whole UI — text, controls,
+  spacing, the sidebar, timeline and dialogs — now scales with the system
+  font and follows it if it changes while the app runs. Display scaling
+  (e.g. 145%) was already handled by Qt; at the default font nothing
+  changes.
+
 ## [0.2.0] — 2026-11-07
 
 First release of this fork (see the README); it diverges from upstream from here on.

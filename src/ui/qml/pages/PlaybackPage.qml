@@ -524,11 +524,11 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Text { visible: page.paneCount === 1
-                       text: qsTr("Camera:"); color: Theme.textMuted; font.pixelSize: 12 }
+                       text: qsTr("Camera:"); color: Theme.textMuted; font.pixelSize: Theme.px(12) }
                 CameraComboBox {
                     id: deviceCombo
                     visible: page.paneCount === 1   // each grid pane has its own
-                    Layout.preferredWidth: 240
+                    Layout.preferredWidth: Theme.px(240)
                     onCurrentIndexChanged: {
                         // Switching cameras keeps the date and playhead: once the new
                         // camera's recordings load, resume playing at this same moment
@@ -547,7 +547,7 @@ Item {
                     model: [1, 4]
                     Rectangle {
                         required property int modelData
-                        width: 34; height: 26; radius: Theme.radius
+                        width: Theme.px(34); height: Theme.px(26); radius: Theme.radius
                         color: page.paneCount === modelData ? Theme.accentDim
                              : pcHover.hovered ? Theme.surfaceAlt : Theme.surface
                         border.color: Theme.border
@@ -555,7 +555,7 @@ Item {
                             anchors.centerIn: parent
                             text: parent.modelData
                             color: page.paneCount === parent.modelData ? Theme.text : Theme.textMuted
-                            font.pixelSize: 12
+                            font.pixelSize: Theme.px(12)
                         }
                         HoverHandler { id: pcHover }
                         TapHandler { onTapped: page.setPaneCount(parent.modelData) }
@@ -563,14 +563,14 @@ Item {
                             visible: pcHover.hovered
                             delay: 500
                             x: (parent.width - width) / 2
-                            y: parent.height + 6
+                            y: parent.height + Theme.px(6)
                             contentItem: Text {
                                 text: modelData === 1 ? qsTr("Single camera")
                                     : qsTr("Synced 4-camera grid")
-                                color: Theme.text; font.pixelSize: 11
+                                color: Theme.text; font.pixelSize: Theme.px(11)
                             }
                             background: Rectangle { color: Theme.surfaceAlt
-                                                    border.color: Theme.border; radius: 4 }
+                                                    border.color: Theme.border; radius: Theme.px(4) }
                         }
                     }
                 }
@@ -579,7 +579,7 @@ Item {
                     id: statusText
                     text: qsTr("Select a date")
                     color: Theme.textMuted
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                 }
             }
 
@@ -679,13 +679,13 @@ Item {
                 // Zoom badge
                 Rectangle {
                     visible: videoBox.zoom > 1.01 && player.state === StreamPlayer.Streaming
-                    anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 6
-                    radius: 3; color: "#80000000"
-                    width: zoomBadge.implicitWidth + 12; height: zoomBadge.implicitHeight + 6
+                    anchors.top: parent.top; anchors.left: parent.left; anchors.margins: Theme.px(6)
+                    radius: Theme.px(3); color: "#80000000"
+                    width: zoomBadge.implicitWidth + Theme.px(12); height: zoomBadge.implicitHeight + Theme.px(6)
                     Text {
                         id: zoomBadge; anchors.centerIn: parent
                         text: videoBox.zoom.toFixed(1) + "×"
-                        color: Theme.accent; font.pixelSize: 11
+                        color: Theme.accent; font.pixelSize: Theme.px(11)
                     }
                 }
 
@@ -700,12 +700,12 @@ Item {
                     BusyIndicator {
                         anchors.horizontalCenter: parent.horizontalCenter
                         running: player.state === StreamPlayer.Connecting
-                        visible: running; width: 32; height: 32
+                        visible: running; width: Theme.px(32); height: Theme.px(32)
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         color: player.state === StreamPlayer.Error ? Theme.danger : Theme.textMuted
-                        font.pixelSize: 12
+                        font.pixelSize: Theme.px(12)
                         text: player.state === StreamPlayer.Error ? player.errorString
                             : qsTr("Click a recording on the timeline to play")
                     }
@@ -821,18 +821,18 @@ Item {
                     property string glyph: ""
                     property string tip: ""
                     signal activated()
-                    width: 34; height: 30; radius: Theme.radius
+                    width: Theme.px(34); height: Theme.px(30); radius: Theme.radius
                     color: cHover.hovered ? Theme.surfaceAlt : Theme.surface
                     border.color: Theme.border
-                    Text { anchors.centerIn: parent; text: parent.glyph; color: Theme.text; font.pixelSize: 14 }
+                    Text { anchors.centerIn: parent; text: parent.glyph; color: Theme.text; font.pixelSize: Theme.px(14) }
                     HoverHandler { id: cHover }
                     ToolTip {
                         visible: cHover.hovered && tip !== ""
                         delay: 500
                         x: (parent.width - width) / 2
-                        y: -height - 8
-                        contentItem: Text { text: tip; color: Theme.text; font.pixelSize: 11 }
-                        background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                        y: -height - Theme.px(8)
+                        contentItem: Text { text: tip; color: Theme.text; font.pixelSize: Theme.px(11) }
+                        background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
                     }
                     TapHandler { onTapped: parent.activated() }
                 }
@@ -864,21 +864,21 @@ Item {
                     id: exportBtn
                     visible: page.paneCount === 1
                     property bool busy: false
-                    width: expRow.implicitWidth + 18; height: 30; radius: Theme.radius
+                    width: expRow.implicitWidth + Theme.px(18); height: Theme.px(30); radius: Theme.radius
                     color: expHover.hovered && !busy ? Theme.surfaceAlt : Theme.surface
                     border.color: Theme.border
                     Row {
                         id: expRow
                         anchors.centerIn: parent
-                        spacing: 5
+                        spacing: Theme.px(5)
                         BusyIndicator { visible: exportBtn.busy; running: visible
-                                        width: 14; height: 14
+                                        width: Theme.px(14); height: Theme.px(14)
                                         anchors.verticalCenter: parent.verticalCenter }
                         Text { text: exportBtn.busy ? qsTr("Exporting…") : qsTr("Export clip")
-                               color: Theme.text; font.pixelSize: 12
+                               color: Theme.text; font.pixelSize: Theme.px(12)
                                anchors.verticalCenter: parent.verticalCenter }
                         Text { visible: !exportBtn.busy; text: "\u25be"; color: Theme.textMuted
-                               font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+                               font.pixelSize: Theme.px(10); anchors.verticalCenter: parent.verticalCenter }
                     }
                     HoverHandler { id: expHover }
                     TapHandler { onTapped: if (!exportBtn.busy) exportMenu.popup() }
@@ -901,27 +901,27 @@ Item {
                 // 2 concurrent main streams, and a 4-pane grid would blow past it.
                 Rectangle {
                     visible: page.paneCount === 1
-                    width: 52; height: 30; radius: Theme.radius
+                    width: Theme.px(52); height: Theme.px(30); radius: Theme.radius
                     color: page.hdMode ? Theme.accent : (hdHover.hovered ? Theme.surfaceAlt : Theme.surface)
                     border.color: page.hdMode ? Theme.accent : Theme.border
                     Text {
                         anchors.centerIn: parent
                         text: page.hdMode ? qsTr("HD") : qsTr("SD")
                         color: page.hdMode ? Theme.window : Theme.text
-                        font.pixelSize: 12; font.bold: true
+                        font.pixelSize: Theme.px(12); font.bold: true
                     }
                     HoverHandler { id: hdHover }
                     ToolTip {
                         visible: hdHover.hovered
                         delay: 500
                         x: (parent.width - width) / 2
-                        y: -height - 8
+                        y: -height - Theme.px(8)
                         contentItem: Text {
                             text: page.hdMode ? qsTr("Switch to SD (light scrubbing)")
                                               : qsTr("Switch to HD (full resolution)")
-                            color: Theme.text; font.pixelSize: 11
+                            color: Theme.text; font.pixelSize: Theme.px(11)
                         }
-                        background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                        background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
                     }
                     TapHandler {
                         onTapped: {
@@ -938,7 +938,7 @@ Item {
 
         // ---- Right: calendar ----
         Rectangle {
-            Layout.preferredWidth: 240
+            Layout.preferredWidth: Theme.px(240)
             Layout.fillHeight: true
             color: Theme.surface
             border.color: Theme.border

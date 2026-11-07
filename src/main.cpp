@@ -5,6 +5,7 @@
 #include "core/SingleInstance.h"
 #include "core/Updater.h"
 #include "ui/TrayIcon.h"
+#include "ui/UiMetrics.h"
 #include "device/DeviceDiscovery.h"
 #include "device/DeviceManager.h"
 #include "device/EventManager.h"
@@ -151,6 +152,7 @@ int main(int argc, char *argv[])
     rl::DeviceDiscovery discovery;
     rl::Updater updater;
     rl::TrayIcon tray;
+    rl::UiMetrics uiMetrics;
 
     qmlRegisterType<rl::StreamPlayer>("ReolinkApp.Core", 1, 0, "StreamPlayer");
     qmlRegisterSingletonInstance("ReolinkApp.Core", 1, 0, "Devices", &devices);
@@ -158,6 +160,7 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonInstance("ReolinkApp.Core", 1, 0, "Discovery", &discovery);
     qmlRegisterSingletonInstance("ReolinkApp.Core", 1, 0, "Updater", &updater);
     qmlRegisterSingletonInstance("ReolinkApp.Core", 1, 0, "Tray", &tray);
+    qmlRegisterSingletonInstance("ReolinkApp.Core", 1, 0, "UiMetrics", &uiMetrics);
 
     QQmlApplicationEngine engine;
     // Lets tests/screenshots open a specific page (0=Live,1=Playback,2=Events,3=Settings).

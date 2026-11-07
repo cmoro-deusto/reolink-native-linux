@@ -11,7 +11,7 @@ Dialog {
     id: dlg
     modal: true
     anchors.centerIn: Overlay.overlay
-    width: Math.min(860, (Overlay.overlay ? Overlay.overlay.width : 860) - 80)
+    width: Math.min(Theme.px(860), (Overlay.overlay ? Overlay.overlay.width : 860) - Theme.px(80))
     padding: Theme.spacing * 2
 
     property int deviceRow: -1
@@ -61,19 +61,19 @@ Dialog {
         // Type tabs (only types the device reports).
         Flow {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: Theme.px(6)
             Repeater {
                 model: dlg.typeDefs
                 Rectangle {
                     required property var modelData
                     visible: dlg.schedule[modelData.key] !== undefined
                     property bool sel: dlg.currentType === modelData.key
-                    implicitWidth: tabText.implicitWidth + 22
-                    height: 28; radius: 14
+                    implicitWidth: tabText.implicitWidth + Theme.px(22)
+                    height: Theme.px(28); radius: Theme.px(14)
                     color: sel ? Theme.accentDim : (tabHover.hovered ? Theme.surfaceAlt : Theme.surface)
                     border.color: sel ? Theme.accent : Theme.border
                     Text { id: tabText; anchors.centerIn: parent; text: parent.modelData.label
-                           color: parent.sel ? Theme.text : Theme.textMuted; font.pixelSize: 12 }
+                           color: parent.sel ? Theme.text : Theme.textMuted; font.pixelSize: Theme.px(12) }
                     HoverHandler { id: tabHover }
                     TapHandler { onTapped: { dlg.currentType = parent.modelData.key; dlg.loadType(); } }
                 }
@@ -84,30 +84,30 @@ Dialog {
             Layout.fillWidth: true
             text: qsTr("Drag to choose when %1 recording is active (blue = recording).")
                     .arg((dlg.typeDefs.find(t => t.key === dlg.currentType) || {label: dlg.currentType}).label)
-            color: Theme.textMuted; font.pixelSize: 12; wrapMode: Text.WordWrap
+            color: Theme.textMuted; font.pixelSize: Theme.px(12); wrapMode: Text.WordWrap
         }
 
         // Hour scale
         RowLayout {
             Layout.fillWidth: true
             spacing: 0
-            Item { Layout.preferredWidth: 42 }
+            Item { Layout.preferredWidth: Theme.px(42) }
             Repeater {
                 model: 9
                 Text {
                     required property int index
                     Layout.fillWidth: true
                     text: (index * 3) + ":00"
-                    color: Theme.textMuted; font.pixelSize: 9
+                    color: Theme.textMuted; font.pixelSize: Theme.px(9)
                 }
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: Theme.px(6)
             Column {
-                Layout.preferredWidth: 36
+                Layout.preferredWidth: Theme.px(36)
                 spacing: 0
                 Repeater {
                     model: dlg.dayNames
@@ -115,7 +115,7 @@ Dialog {
                         required property string modelData
                         height: grid.height / 7
                         verticalAlignment: Text.AlignVCenter
-                        text: modelData; color: Theme.textMuted; font.pixelSize: 11
+                        text: modelData; color: Theme.textMuted; font.pixelSize: Theme.px(11)
                     }
                 }
             }
@@ -156,10 +156,10 @@ Dialog {
                 property string text: ""
                 property color edge: Theme.border
                 signal clicked()
-                implicitWidth: sl.implicitWidth + 24; implicitHeight: 32; radius: Theme.radius
+                implicitWidth: sl.implicitWidth + Theme.px(24); implicitHeight: Theme.px(32); radius: Theme.radius
                 color: sh.hovered ? Theme.surfaceAlt : "transparent"
                 border.color: edge
-                Text { id: sl; anchors.centerIn: parent; text: parent.text; color: Theme.text; font.pixelSize: 12 }
+                Text { id: sl; anchors.centerIn: parent; text: parent.text; color: Theme.text; font.pixelSize: Theme.px(12) }
                 HoverHandler { id: sh }
                 TapHandler { onTapped: parent.clicked() }
             }

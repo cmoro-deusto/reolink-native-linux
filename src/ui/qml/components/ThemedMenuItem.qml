@@ -5,19 +5,19 @@ import ReolinkApp
 // A MenuItem matching the app theme; use inside ThemedMenu.
 MenuItem {
     id: control
-    implicitHeight: 32
-    implicitWidth: 180
+    implicitHeight: Theme.px(32)
+    implicitWidth: Theme.px(180)
     contentItem: Text {
         text: control.text
         color: control.enabled ? Theme.text : Theme.textMuted
-        font.pixelSize: 13
+        font.pixelSize: Theme.px(13)
         verticalAlignment: Text.AlignVCenter
-        leftPadding: 8
-        rightPadding: 8
+        leftPadding: Theme.px(8)
+        rightPadding: Theme.px(8)
         elide: Text.ElideRight
     }
     background: Rectangle {
-        radius: 4
+        radius: Theme.px(4)
         color: control.highlighted ? Theme.accentDim : "transparent"
     }
 }

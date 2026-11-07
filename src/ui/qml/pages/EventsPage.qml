@@ -64,21 +64,21 @@ Item {
             Text {
                 text: qsTr("Events")
                 color: Theme.text
-                font.pixelSize: 20
+                font.pixelSize: Theme.px(20)
                 font.bold: true
             }
             Text {
                 text: Events.count > 0 ? Events.count : ""
                 color: Theme.textMuted
-                font.pixelSize: 13
+                font.pixelSize: Theme.px(13)
                 Layout.alignment: Qt.AlignBottom
-                bottomPadding: 2
+                bottomPadding: Theme.px(2)
             }
             Item { Layout.fillWidth: true }
             Rectangle {
                 visible: Events.count > 0
-                implicitWidth: clearText.implicitWidth + 20
-                height: 30
+                implicitWidth: clearText.implicitWidth + Theme.px(20)
+                height: Theme.px(30)
                 radius: Theme.radius
                 color: clearHover.hovered ? Theme.surfaceAlt : "transparent"
                 border.color: Theme.border
@@ -87,7 +87,7 @@ Item {
                     anchors.centerIn: parent
                     text: qsTr("Clear all")
                     color: Theme.textMuted
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                 }
                 HoverHandler { id: clearHover }
                 TapHandler { onTapped: Events.clear() }
@@ -97,7 +97,7 @@ Item {
         // ---- Filter chips ----
         Flow {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: Theme.px(6)
             Repeater {
                 model: [
                     { key: "", label: qsTr("All") },
@@ -110,9 +110,9 @@ Item {
                 Rectangle {
                     required property var modelData
                     property bool sel: Events.filter === modelData.key
-                    implicitWidth: chipText.implicitWidth + 24
-                    height: 30
-                    radius: 15
+                    implicitWidth: chipText.implicitWidth + Theme.px(24)
+                    height: Theme.px(30)
+                    radius: Theme.px(15)
                     color: sel ? Theme.accentDim : (chipHover.hovered ? Theme.surfaceAlt : Theme.surface)
                     border.color: sel ? Theme.accent : Theme.border
                     Text {
@@ -120,7 +120,7 @@ Item {
                         anchors.centerIn: parent
                         text: parent.modelData.label
                         color: parent.sel ? Theme.text : Theme.textMuted
-                        font.pixelSize: 12
+                        font.pixelSize: Theme.px(12)
                     }
                     HoverHandler { id: chipHover }
                     TapHandler { onTapped: Events.filter = parent.modelData.key }
@@ -131,21 +131,21 @@ Item {
             Rectangle {
                 id: camChip
                 property bool active: Events.cameraFilter !== ""
-                implicitWidth: camChipText.implicitWidth + 34
-                height: 30
-                radius: 15
+                implicitWidth: camChipText.implicitWidth + Theme.px(34)
+                height: Theme.px(30)
+                radius: Theme.px(15)
                 color: active ? Theme.accentDim : (camChipHover.hovered ? Theme.surfaceAlt : Theme.surface)
                 border.color: active ? Theme.accent : Theme.border
                 Row {
                     anchors.centerIn: parent
-                    spacing: 5
+                    spacing: Theme.px(5)
                     Text {
                         id: camChipText
                         text: camChip.active ? Events.cameraFilter : qsTr("All cameras")
                         color: camChip.active ? Theme.text : Theme.textMuted
-                        font.pixelSize: 12
+                        font.pixelSize: Theme.px(12)
                     }
-                    Text { text: "\u25be"; color: Theme.textMuted; font.pixelSize: 10
+                    Text { text: "\u25be"; color: Theme.textMuted; font.pixelSize: Theme.px(10)
                            anchors.verticalCenter: parent.verticalCenter }
                 }
                 HoverHandler { id: camChipHover }
@@ -175,7 +175,7 @@ Item {
             Layout.fillHeight: true
             model: Events
             clip: true
-            spacing: 6
+            spacing: Theme.px(6)
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
@@ -190,7 +190,7 @@ Item {
                 required property var timestamp
 
                 width: ListView.view.width
-                height: 72
+                height: Theme.px(72)
                 radius: Theme.radius
                 color: rowHover.hovered ? Theme.surfaceAlt : Theme.surface
                 border.color: rowHover.hovered ? Theme.border : Qt.rgba(1, 1, 1, 0.04)
@@ -200,24 +200,24 @@ Item {
                     anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    width: 3
+                    width: Theme.px(3)
                     radius: Theme.radius
                     color: page.colorFor(type)
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 14
-                    anchors.topMargin: 8
-                    anchors.bottomMargin: 8
-                    spacing: 12
+                    anchors.leftMargin: Theme.px(12)
+                    anchors.rightMargin: Theme.px(14)
+                    anchors.topMargin: Theme.px(8)
+                    anchors.bottomMargin: Theme.px(8)
+                    spacing: Theme.px(12)
 
                     // Thumbnail (16:9) or type icon
                     Rectangle {
-                        Layout.preferredWidth: 96
+                        Layout.preferredWidth: Theme.px(96)
                         Layout.fillHeight: true
-                        radius: 4
+                        radius: Theme.px(4)
                         color: Theme.paneBackground
                         clip: true
                         Image {
@@ -230,7 +230,7 @@ Item {
                             anchors.centerIn: parent
                             visible: thumbnail.length === 0
                             text: page.iconFor(type)
-                            font.pixelSize: 24
+                            font.pixelSize: Theme.px(24)
                             opacity: 0.85
                         }
                     }
@@ -238,17 +238,17 @@ Item {
                     // Type + camera
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 3
+                        spacing: Theme.px(3)
                         Text {
                             text: page.labelFor(type)
                             color: page.colorFor(type)
-                            font.pixelSize: 14
+                            font.pixelSize: Theme.px(14)
                             font.bold: true
                         }
                         Text {
                             text: camera
                             color: Theme.text
-                            font.pixelSize: 13
+                            font.pixelSize: Theme.px(13)
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
@@ -257,17 +257,17 @@ Item {
                     // Time + affordance
                     ColumnLayout {
                         Layout.alignment: Qt.AlignRight
-                        spacing: 3
+                        spacing: Theme.px(3)
                         Text {
                             text: timeText
                             color: Theme.textMuted
-                            font.pixelSize: 12
+                            font.pixelSize: Theme.px(12)
                             Layout.alignment: Qt.AlignRight
                         }
                         Text {
                             text: qsTr("View ›")
                             color: rowHover.hovered ? Theme.accent : Theme.textMuted
-                            font.pixelSize: 11
+                            font.pixelSize: Theme.px(11)
                             Layout.alignment: Qt.AlignRight
                         }
                     }
@@ -281,23 +281,23 @@ Item {
             Column {
                 anchors.centerIn: parent
                 visible: Events.count === 0
-                spacing: 8
+                spacing: Theme.px(8)
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "🔔"; font.pixelSize: 40; opacity: 0.7
+                    text: "🔔"; font.pixelSize: Theme.px(40); opacity: 0.7
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Events.filter.length > 0 ? qsTr("No events of this type")
                                                    : qsTr("No events yet")
                     color: Theme.text
-                    font.pixelSize: 14
+                    font.pixelSize: Theme.px(14)
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: qsTr("Detections from your cameras appear here")
                     color: Theme.textMuted
-                    font.pixelSize: 12
+                    font.pixelSize: Theme.px(12)
                 }
             }
         }

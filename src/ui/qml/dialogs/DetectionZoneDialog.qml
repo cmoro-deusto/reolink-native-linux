@@ -12,7 +12,7 @@ Dialog {
     id: dlg
     modal: true
     anchors.centerIn: Overlay.overlay
-    width: Math.min(900, (Overlay.overlay ? Overlay.overlay.width : 900) - 80)
+    width: Math.min(Theme.px(900), (Overlay.overlay ? Overlay.overlay.width : 900) - Theme.px(80))
     padding: Theme.spacing * 2
 
     property int deviceRow: -1
@@ -54,7 +54,7 @@ Dialog {
         Text {
             Layout.fillWidth: true; wrapMode: Text.WordWrap
             text: qsTr("Drag over the image to toggle areas. Red areas are ignored — motion there won't trigger alarms.")
-            color: Theme.textMuted; font.pixelSize: 12
+            color: Theme.textMuted; font.pixelSize: Theme.px(12)
         }
 
         Rectangle {
@@ -78,7 +78,7 @@ Dialog {
                 anchors.centerIn: parent
                 visible: dlg.snapshotPath === ""
                 text: qsTr("Loading camera image…")
-                color: Theme.textMuted; font.pixelSize: 12
+                color: Theme.textMuted; font.pixelSize: Theme.px(12)
             }
 
             Canvas {
@@ -123,10 +123,10 @@ Dialog {
                 property string text: ""
                 property color edge: Theme.border
                 signal clicked()
-                implicitWidth: lbl.implicitWidth + 24; implicitHeight: 32; radius: Theme.radius
+                implicitWidth: lbl.implicitWidth + Theme.px(24); implicitHeight: Theme.px(32); radius: Theme.radius
                 color: h.hovered ? Theme.surfaceAlt : "transparent"
                 border.color: edge
-                Text { id: lbl; anchors.centerIn: parent; text: parent.text; color: Theme.text; font.pixelSize: 12 }
+                Text { id: lbl; anchors.centerIn: parent; text: parent.text; color: Theme.text; font.pixelSize: Theme.px(12) }
                 HoverHandler { id: h }
                 TapHandler { onTapped: parent.clicked() }
             }

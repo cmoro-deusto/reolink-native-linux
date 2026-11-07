@@ -29,12 +29,17 @@ Rectangle {
     component DeviceGlyph: Canvas {
         property string kind: "cam"      // "nvr" | "cam"
         property color tint: Theme.textMuted
-        implicitWidth: 20; implicitHeight: 20
+        implicitWidth: Theme.px(20); implicitHeight: Theme.px(20)
         onTintChanged: requestPaint()
         onKindChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
         onPaint: {
             var ctx = getContext("2d");
             ctx.reset();
+            // The glyphs are drawn in a 20x20 design space; fit it to the item,
+            // which grows with Theme.uiScale.
+            ctx.scale(width / 20, height / 20);
             ctx.strokeStyle = tint; ctx.fillStyle = tint;
             ctx.lineWidth = 1.6; ctx.lineJoin = "round"; ctx.lineCap = "round";
             function rr(x, y, w, h, r) {
@@ -74,20 +79,20 @@ Rectangle {
             Text {
                 text: qsTr("Devices")
                 color: Theme.text
-                font.pixelSize: 14
+                font.pixelSize: Theme.px(14)
                 font.bold: true
             }
             Item { Layout.fillWidth: true }
             Rectangle {
-                width: 26
-                height: 26
+                width: Theme.px(26)
+                height: Theme.px(26)
                 radius: Theme.radius
                 color: addArea.containsMouse ? Theme.accentDim : Theme.surfaceAlt
                 Text {
                     anchors.centerIn: parent
                     text: "+"
                     color: Theme.text
-                    font.pixelSize: 16
+                    font.pixelSize: Theme.px(16)
                 }
                 MouseArea {
                     id: addArea
@@ -104,7 +109,7 @@ Rectangle {
             Layout.fillHeight: true
             model: Devices
             clip: true
-            spacing: 2
+            spacing: Theme.px(2)
 
             // Group channels under their host. The header renders only for NVRs
             // (a standalone camera is its own host — no redundant parent row).
@@ -151,11 +156,11 @@ Rectangle {
                     anchors.fill: parent
                     anchors.leftMargin: Theme.spacing
                     anchors.rightMargin: Theme.spacing
-                    spacing: 7
+                    spacing: Theme.px(7)
                     Text {
                         text: root.collapsed[nvrHeader.section] ? "▸" : "▾"
-                        color: Theme.textMuted; font.pixelSize: 11
-                        Layout.preferredWidth: 10
+                        color: Theme.textMuted; font.pixelSize: Theme.px(11)
+                        Layout.preferredWidth: Theme.px(10)
                     }
                     DeviceGlyph {
                         kind: "nvr"
@@ -168,13 +173,13 @@ Rectangle {
                         Text {
                             Layout.fillWidth: true
                             text: nvrHeader.host ? nvrHeader.host.name : ""
-                            color: Theme.text; font.pixelSize: 13; font.bold: true
+                            color: Theme.text; font.pixelSize: Theme.px(13); font.bold: true
                             elide: Text.ElideRight
                         }
                         Row {
-                            spacing: 5
+                            spacing: Theme.px(5)
                             Rectangle {
-                                width: 7; height: 7; radius: 3.5
+                                width: Theme.px(7); height: Theme.px(7); radius: Theme.px(3.5)
                                 anchors.verticalCenter: parent.verticalCenter
                                 color: nvrHeader.host && nvrHeader.host.online ? Theme.online
                                      : nvrHeader.inTrouble ? Theme.danger : Theme.textMuted
@@ -196,7 +201,7 @@ Rectangle {
                                            + "/" + h.channelCount + qsTr(" cameras");
                                 }
                                 color: nvrHeader.inTrouble ? Theme.danger : Theme.textMuted
-                                font.pixelSize: 10
+                                font.pixelSize: Theme.px(10)
                                 elide: Text.ElideRight
                             }
                         }
@@ -269,12 +274,12 @@ Rectangle {
                 // making the nesting under the NVR obvious.
                 Rectangle {
                     visible: camRow.underNvr && !camRow.hidden
-                    x: 17; y: 0; width: 2; height: parent.height
+                    x: Theme.px(17); y: 0; width: Theme.px(2); height: parent.height
                     color: Theme.textMuted; opacity: 0.35
                 }
                 Rectangle {
                     visible: camRow.underNvr && !camRow.hidden
-                    x: 17; y: parent.height / 2 - 1; width: 13; height: 2
+                    x: Theme.px(17); y: parent.height / 2 - 1; width: Theme.px(13); height: Theme.px(2)
                     color: Theme.textMuted; opacity: 0.35
                 }
 
@@ -282,8 +287,8 @@ Rectangle {
                     anchors.fill: parent
                     anchors.leftMargin: camRow.underNvr ? 30 : Theme.spacing
                     anchors.rightMargin: Theme.spacing
-                    anchors.topMargin: 4
-                    anchors.bottomMargin: 4
+                    anchors.topMargin: Theme.px(4)
+                    anchors.bottomMargin: Theme.px(4)
                     spacing: Theme.spacing
 
                     DeviceGlyph {
@@ -293,29 +298,29 @@ Rectangle {
                     }
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 2
+                        spacing: Theme.px(2)
                         Text {
                             Layout.fillWidth: true
                             text: name
                             color: Theme.text
-                            font.pixelSize: 13
+                            font.pixelSize: Theme.px(13)
                             elide: Text.ElideRight
                         }
                         Row {
-                            spacing: 5
+                            spacing: Theme.px(5)
                             Rectangle {
-                                width: 7; height: 7; radius: 3.5
+                                width: Theme.px(7); height: Theme.px(7); radius: Theme.px(3.5)
                                 anchors.verticalCenter: parent.verticalCenter
                                 color: online ? Theme.online
                                      : camRow.inTrouble ? Theme.danger : Theme.textMuted
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Math.min(implicitWidth, camRow.width - 80)
+                                width: Math.min(implicitWidth, camRow.width - Theme.px(80))
                                 text: camRow.underNvr ? status
                                     : (model.length > 0 ? model + " · " + status : status)
                                 color: camRow.inTrouble ? Theme.danger : Theme.textMuted
-                                font.pixelSize: 11
+                                font.pixelSize: Theme.px(11)
                                 elide: Text.ElideRight
                             }
                         }
@@ -324,16 +329,16 @@ Rectangle {
                     // Battery badge (battery/solar cameras only).
                     Row {
                         visible: batteryPercent >= 0
-                        spacing: 3
+                        spacing: Theme.px(3)
                         Text {
                             text: "⚡"
                             visible: batteryCharging
                             color: Theme.online
-                            font.pixelSize: 11
+                            font.pixelSize: Theme.px(11)
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Rectangle {
-                            width: 22; height: 11; radius: 2
+                            width: Theme.px(22); height: Theme.px(11); radius: Theme.px(2)
                             border.color: Theme.textMuted
                             color: "transparent"
                             anchors.verticalCenter: parent.verticalCenter
@@ -341,15 +346,15 @@ Rectangle {
                                 anchors.left: parent.left
                                 anchors.leftMargin: 1
                                 anchors.verticalCenter: parent.verticalCenter
-                                height: 7
-                                width: Math.max(1, (parent.width - 2) * batteryPercent / 100)
+                                height: Theme.px(7)
+                                width: Math.max(1, (parent.width - Theme.px(2)) * batteryPercent / 100)
                                 radius: 1
                                 color: batteryPercent > 20 ? Theme.online : Theme.danger
                             }
                             Rectangle { // terminal
                                 anchors.left: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 2; height: 5; color: Theme.textMuted
+                                width: Theme.px(2); height: Theme.px(5); color: Theme.textMuted
                             }
                         }
                         // Fixed "100%" width, right-aligned, so icons and % signs line
@@ -358,14 +363,14 @@ Rectangle {
                         Text {
                             text: batteryPercent + "%"
                             color: Theme.textMuted
-                            font.pixelSize: 10
+                            font.pixelSize: Theme.px(10)
                             horizontalAlignment: Text.AlignRight
-                            leftPadding: 4
+                            leftPadding: Theme.px(4)
                             width: leftPadding + pctMetrics.advanceWidth
                             anchors.verticalCenter: parent.verticalCenter
                             TextMetrics {
                                 id: pctMetrics
-                                font.pixelSize: 10
+                                font.pixelSize: Theme.px(10)
                                 text: "100%"
                             }
                         }
@@ -377,8 +382,8 @@ Rectangle {
                 Item {
                     id: camDrag
                     parent: Window.contentItem
-                    width: 190
-                    height: 56
+                    width: Theme.px(190)
+                    height: Theme.px(56)
                     visible: Drag.active
                     z: 100
                     Drag.active: false
@@ -396,12 +401,12 @@ Rectangle {
                         opacity: 0.95
                         Text {
                             anchors.centerIn: parent
-                            width: parent.width - 16
+                            width: parent.width - Theme.px(16)
                             horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
                             text: camRow.name
                             color: Theme.text
-                            font.pixelSize: 12
+                            font.pixelSize: Theme.px(12)
                         }
                     }
                 }
@@ -504,7 +509,7 @@ Rectangle {
                 visible: Devices.count === 0
                 text: qsTr("No devices yet.\nClick + to add one.")
                 color: Theme.textMuted
-                font.pixelSize: 12
+                font.pixelSize: Theme.px(12)
                 horizontalAlignment: Text.AlignHCenter
             }
         }
@@ -516,7 +521,7 @@ Rectangle {
     Dialog {
         id: credsDialog
         modal: true
-        width: 360
+        width: Theme.px(360)
         anchors.centerIn: Overlay.overlay
         property int targetRow: -1
 
@@ -536,7 +541,7 @@ Rectangle {
             radius: Theme.radius
         }
         header: Item {
-            implicitHeight: 44
+            implicitHeight: Theme.px(44)
             Text {
                 id: credsTitle
                 anchors.left: parent.left
@@ -546,7 +551,7 @@ Rectangle {
                 anchors.rightMargin: Theme.spacing
                 elide: Text.ElideRight
                 color: Theme.text
-                font.pixelSize: 14
+                font.pixelSize: Theme.px(14)
                 font.bold: true
             }
         }
@@ -562,7 +567,7 @@ Rectangle {
                 background: Rectangle {
                     color: Theme.surfaceAlt
                     border.color: parent.activeFocus ? Theme.accent : Theme.border
-                    radius: 4
+                    radius: Theme.px(4)
                 }
             }
             TextField {
@@ -575,33 +580,33 @@ Rectangle {
                 background: Rectangle {
                     color: Theme.surfaceAlt
                     border.color: parent.activeFocus ? Theme.accent : Theme.border
-                    radius: 4
+                    radius: Theme.px(4)
                 }
             }
         }
 
         footer: Item {
-            implicitHeight: 52
+            implicitHeight: Theme.px(52)
             RowLayout {
                 anchors.right: parent.right
                 anchors.rightMargin: Theme.spacing * 2
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.spacing
                 Rectangle {
-                    implicitWidth: ccLbl.implicitWidth + 26; implicitHeight: 32; radius: Theme.radius
+                    implicitWidth: ccLbl.implicitWidth + Theme.px(26); implicitHeight: Theme.px(32); radius: Theme.radius
                     color: ccHov.hovered ? Theme.surfaceAlt : "transparent"
                     border.color: Theme.border
                     Text { id: ccLbl; anchors.centerIn: parent; text: qsTr("Cancel")
-                           color: Theme.text; font.pixelSize: 13 }
+                           color: Theme.text; font.pixelSize: Theme.px(13) }
                     HoverHandler { id: ccHov }
                     TapHandler { onTapped: credsDialog.close() }
                 }
                 Rectangle {
-                    implicitWidth: csLbl.implicitWidth + 26; implicitHeight: 32; radius: Theme.radius
+                    implicitWidth: csLbl.implicitWidth + Theme.px(26); implicitHeight: Theme.px(32); radius: Theme.radius
                     color: csHov.hovered ? Theme.accent : Theme.accentDim
                     border.color: Theme.accent
                     Text { id: csLbl; anchors.centerIn: parent; text: qsTr("Save & reconnect")
-                           color: Theme.text; font.pixelSize: 13 }
+                           color: Theme.text; font.pixelSize: Theme.px(13) }
                     HoverHandler { id: csHov }
                     TapHandler {
                         onTapped: {

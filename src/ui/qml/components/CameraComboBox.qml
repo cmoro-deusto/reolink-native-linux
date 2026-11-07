@@ -11,7 +11,7 @@ ComboBox {
     id: combo
     model: Devices
     textRole: "name"
-    implicitHeight: 34
+    implicitHeight: Theme.px(34)
 
     function ensureSelection() {
         if (Devices.count > 0 && (currentIndex < 0 || currentIndex >= Devices.count))
@@ -24,12 +24,12 @@ ComboBox {
     }
 
     contentItem: Text {
-        leftPadding: 10
-        rightPadding: 28
+        leftPadding: Theme.px(10)
+        rightPadding: Theme.px(28)
         text: combo.currentIndex >= 0 && combo.displayText.length > 0
               ? combo.displayText : qsTr("Select a camera")
         color: combo.currentIndex >= 0 ? Theme.text : Theme.textMuted
-        font.pixelSize: 13
+        font.pixelSize: Theme.px(13)
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
@@ -37,35 +37,35 @@ ComboBox {
     background: Rectangle {
         color: Theme.surfaceAlt
         border.color: combo.activeFocus || combo.hovered ? Theme.accent : Theme.border
-        radius: 4
+        radius: Theme.px(4)
     }
 
     indicator: Text {
-        x: combo.width - width - 10
+        x: combo.width - width - Theme.px(10)
         y: (combo.height - height) / 2
         text: "▾"
         color: Theme.textMuted
-        font.pixelSize: 12
+        font.pixelSize: Theme.px(12)
     }
 
     delegate: ItemDelegate {
         width: ListView.view ? ListView.view.width : combo.width
-        height: 34
+        height: Theme.px(34)
         required property int index
         required property string name
         required property bool online
         highlighted: combo.highlightedIndex === index
         contentItem: Row {
-            spacing: 8
+            spacing: Theme.px(8)
             Rectangle {
-                width: 8; height: 8; radius: 4
+                width: Theme.px(8); height: Theme.px(8); radius: Theme.px(4)
                 anchors.verticalCenter: parent.verticalCenter
                 color: online ? Theme.online : Theme.textMuted
             }
             Text {
                 text: name
                 color: Theme.text
-                font.pixelSize: 13
+                font.pixelSize: Theme.px(13)
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
@@ -75,9 +75,9 @@ ComboBox {
     }
 
     popup: Popup {
-        y: combo.height + 2
+        y: combo.height + Theme.px(2)
         width: combo.width
-        implicitHeight: Math.min(listView.contentHeight + 2, 320)
+        implicitHeight: Math.min(listView.contentHeight + Theme.px(2), Theme.px(320))
         padding: 1
         contentItem: ListView {
             id: listView
@@ -90,7 +90,7 @@ ComboBox {
         background: Rectangle {
             color: Theme.surface
             border.color: Theme.border
-            radius: 4
+            radius: Theme.px(4)
         }
     }
 }

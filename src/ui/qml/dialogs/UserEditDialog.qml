@@ -11,7 +11,7 @@ import ReolinkApp.Core
 Dialog {
     id: dialog
     modal: true
-    width: 420
+    width: Theme.px(420)
     anchors.centerIn: Overlay.overlay
 
     property int deviceRow: -1
@@ -29,7 +29,7 @@ Dialog {
         background: Rectangle {
             color: Theme.surfaceAlt
             border.color: parent.activeFocus ? Theme.accent : Theme.border
-            radius: 4
+            radius: Theme.px(4)
         }
     }
 
@@ -57,10 +57,10 @@ Dialog {
         RowLayout {
             visible: dialog.mode === "add"
             Layout.fillWidth: true
-            Text { text: qsTr("Privilege"); color: Theme.textMuted; font.pixelSize: 12 }
+            Text { text: qsTr("Privilege"); color: Theme.textMuted; font.pixelSize: Theme.px(12) }
             ComboBox {
                 id: levelBox
-                Layout.preferredWidth: 160
+                Layout.preferredWidth: Theme.px(160)
                 model: ["guest", "admin"]
             }
             Item { Layout.fillWidth: true }
@@ -69,7 +69,7 @@ Dialog {
             Layout.fillWidth: true
             visible: dialog.mode === "add"
             text: qsTr("Guests can view live/playback; admins can also change settings.")
-            color: Theme.textMuted; font.pixelSize: 11; wrapMode: Text.WordWrap
+            color: Theme.textMuted; font.pixelSize: Theme.px(11); wrapMode: Text.WordWrap
         }
     }
 

@@ -21,7 +21,7 @@ Rectangle {
         Text {
             text: qsTr("Reolink Client")
             color: Theme.accent
-            font.pixelSize: 16
+            font.pixelSize: Theme.px(16)
             font.bold: true
         }
 
@@ -29,9 +29,9 @@ Rectangle {
         Text {
             text: "v" + Qt.application.version
             color: Theme.textMuted
-            font.pixelSize: 11
+            font.pixelSize: Theme.px(11)
             Layout.alignment: Qt.AlignVCenter
-            Layout.topMargin: 3
+            Layout.topMargin: Theme.px(3)
         }
 
         Item { width: Theme.spacing * 2; height: 1 }
@@ -49,7 +49,7 @@ Rectangle {
                 Rectangle { // active-tab underline
                     anchors.bottom: parent.bottom
                     width: parent.width
-                    height: 2
+                    height: Theme.px(2)
                     color: Theme.accent
                     visible: root.currentIndex === parent.index
                 }
@@ -58,25 +58,25 @@ Rectangle {
                     anchors.centerIn: parent
                     text: parent.modelData
                     color: root.currentIndex === parent.index ? Theme.text : Theme.textMuted
-                    font.pixelSize: 14
+                    font.pixelSize: Theme.px(14)
                 }
                 // Unread badge on the Events tab (index 2).
                 Rectangle {
                     visible: parent.index === 2 && Events.unread > 0
                     anchors.left: tabLabel.right
-                    anchors.leftMargin: 2
+                    anchors.leftMargin: Theme.px(2)
                     anchors.verticalCenter: tabLabel.verticalCenter
-                    anchors.verticalCenterOffset: -6
-                    width: Math.max(16, badgeText.implicitWidth + 8)
-                    height: 16
-                    radius: 8
+                    anchors.verticalCenterOffset: Theme.px(-6)
+                    width: Math.max(Theme.px(16), badgeText.implicitWidth + Theme.px(8))
+                    height: Theme.px(16)
+                    radius: Theme.px(8)
                     color: Theme.danger
                     Text {
                         id: badgeText
                         anchors.centerIn: parent
                         text: Events.unread > 99 ? "99+" : Events.unread
                         color: "white"
-                        font.pixelSize: 10
+                        font.pixelSize: Theme.px(10)
                         font.bold: true
                     }
                 }
@@ -91,15 +91,15 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
         Rectangle {
-            width: 32
-            height: 32
+            width: Theme.px(32)
+            height: Theme.px(32)
             radius: Theme.radius
             color: fullscreenArea.containsMouse ? Theme.surfaceAlt : "transparent"
             Text {
                 anchors.centerIn: parent
                 text: "⛶"
                 color: Theme.textMuted
-                font.pixelSize: 16
+                font.pixelSize: Theme.px(16)
             }
             MouseArea {
                 id: fullscreenArea
@@ -112,9 +112,9 @@ Rectangle {
                 visible: fullscreenArea.containsMouse
                 delay: 500
                 x: (parent.width - width) / 2
-                y: parent.height + 6
-                contentItem: Text { text: qsTr("Fullscreen (F11)"); color: Theme.text; font.pixelSize: 11 }
-                background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: 4 }
+                y: parent.height + Theme.px(6)
+                contentItem: Text { text: qsTr("Fullscreen (F11)"); color: Theme.text; font.pixelSize: Theme.px(11) }
+                background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
             }
         }
     }

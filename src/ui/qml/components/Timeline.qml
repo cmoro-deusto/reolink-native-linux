@@ -12,8 +12,8 @@ Rectangle {
     id: root
     // The scrub track keeps a fixed height; per-camera lanes extend the widget
     // downwards, so adding cameras never shrinks the thing you actually drag.
-    readonly property real trackHeight: 64
-    readonly property real laneHeight: 7
+    readonly property real trackHeight: Theme.px(64)
+    readonly property real laneHeight: Theme.px(7)
     readonly property real lanesHeight:
         lanes.length > 0 ? lanes.length * (laneHeight + 3) + 5 : 0
     height: trackHeight + lanesHeight
@@ -52,7 +52,7 @@ Rectangle {
             x: root.xForSec(modelData) - 1
             visible: x >= -1 && x <= root.width
             y: 0
-            width: 2
+            width: Theme.px(2)
             height: root.trackHeight * 0.35
             color: Theme.danger
             opacity: 0.9
@@ -68,8 +68,8 @@ Rectangle {
             property real segEnd: modelData.end
             x: root.xForSec(segStart)
             width: Math.max(2, root.xForSec(segEnd) - root.xForSec(segStart))
-            y: 14
-            height: root.trackHeight - 28
+            y: Theme.px(14)
+            height: root.trackHeight - Theme.px(28)
             visible: segEnd >= root.viewStart && segStart <= root.viewStart + root.visibleSpan
             color: modelData.type === "alarm" ? Theme.accent : "#4a5a68"
             opacity: 0.85
@@ -90,11 +90,11 @@ Rectangle {
             }
             Text {
                 visible: parent.index % 2 === 0
-                y: root.trackHeight - 14
-                x: 2
+                y: root.trackHeight - Theme.px(14)
+                x: Theme.px(2)
                 text: String(parent.index).padStart(2, "0") + ":00"
                 color: Theme.textMuted
-                font.pixelSize: 9
+                font.pixelSize: Theme.px(9)
             }
         }
     }
@@ -103,7 +103,7 @@ Rectangle {
     Column {
         y: root.trackHeight
         width: parent.width
-        spacing: 3
+        spacing: Theme.px(3)
         Repeater {
             model: root.lanes
             Item {
@@ -134,17 +134,17 @@ Rectangle {
                 ToolTip {
                     visible: laneHover.hovered
                     delay: 400
-                    x: 4
-                    y: -22
+                    x: Theme.px(4)
+                    y: Theme.px(-Theme.px(22))
                     contentItem: Text {
                         // By id, not parent-chain: a popup's contentItem is
                         // reparented, so parent.parent lands on null mid-teardown.
                         text: laneItem.modelData ? laneItem.modelData.name : ""
                         color: Theme.text
-                        font.pixelSize: 10
+                        font.pixelSize: Theme.px(10)
                     }
                     background: Rectangle {
-                        color: Theme.surfaceAlt; border.color: Theme.border; radius: 3
+                        color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(3)
                     }
                 }
                 HoverHandler { id: laneHover }
@@ -156,7 +156,7 @@ Rectangle {
     Rectangle {
         x: root.xForSec(root.position)
         y: 0
-        width: 2
+        width: Theme.px(2)
         height: root.height
         color: "#ff5a5a"
         z: 6
@@ -168,17 +168,17 @@ Rectangle {
         id: hoverTip
         visible: hover.hovered
         x: Math.min(Math.max(0, hover.point.position.x - width / 2), root.width - width)
-        y: 2
+        y: Theme.px(2)
         z: 5
-        radius: 3
+        radius: Theme.px(3)
         color: "#cc000000"
-        width: tipText.implicitWidth + 8
-        height: tipText.implicitHeight + 4
+        width: tipText.implicitWidth + Theme.px(8)
+        height: tipText.implicitHeight + Theme.px(4)
         Text {
             id: tipText
             anchors.centerIn: parent
             color: "white"
-            font.pixelSize: 10
+            font.pixelSize: Theme.px(10)
             text: {
                 var s = root.secForX(hover.point.position.x);
                 var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
@@ -256,6 +256,6 @@ Rectangle {
         visible: root.segments.length === 0
         text: qsTr("No recordings for this day")
         color: Theme.textMuted
-        font.pixelSize: 12
+        font.pixelSize: Theme.px(12)
     }
 }

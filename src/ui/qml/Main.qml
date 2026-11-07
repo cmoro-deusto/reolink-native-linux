@@ -6,8 +6,8 @@ import ReolinkApp.Core
 
 ApplicationWindow {
     id: window
-    width: 1400
-    height: 860
+    width: Theme.px(1400)
+    height: Theme.px(860)
     visible: typeof startHidden === "undefined" || !startHidden
     title: qsTr("Reolink Client")
     color: Theme.window
@@ -78,7 +78,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             visible: !window.videoFullscreen && !dismissed
                      && (Updater.available || Updater.downloading || Updater.failed)
-            implicitHeight: 40
+            implicitHeight: Theme.px(40)
             color: Updater.failed ? Theme.danger : Theme.accentDim
 
             RowLayout {
@@ -87,10 +87,10 @@ ApplicationWindow {
                 anchors.rightMargin: Theme.spacing
                 spacing: Theme.spacing
 
-                Text { text: "\u2b06"; color: Theme.text; font.pixelSize: 14 }
+                Text { text: "\u2b06"; color: Theme.text; font.pixelSize: Theme.px(14) }
                 Text {
                     Layout.fillWidth: true
-                    color: Theme.text; font.pixelSize: 12; elide: Text.ElideRight
+                    color: Theme.text; font.pixelSize: Theme.px(12); elide: Text.ElideRight
                     text: Updater.downloading
                             ? qsTr("Downloading update\u2026 %1%").arg(Updater.progress)
                         : Updater.failed
@@ -102,9 +102,9 @@ ApplicationWindow {
                 component BannerBtn: Rectangle {
                     property string label: ""
                     signal clicked()
-                    implicitWidth: bl.implicitWidth + 22; implicitHeight: 26; radius: Theme.radius
+                    implicitWidth: bl.implicitWidth + Theme.px(22); implicitHeight: Theme.px(26); radius: Theme.radius
                     color: bh.hovered ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                    Text { id: bl; anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: 12 }
+                    Text { id: bl; anchors.centerIn: parent; text: parent.label; color: Theme.text; font.pixelSize: Theme.px(12) }
                     HoverHandler { id: bh }
                     TapHandler { onTapped: parent.clicked() }
                 }
@@ -121,9 +121,9 @@ ApplicationWindow {
                 }
                 Rectangle {
                     visible: !Updater.downloading
-                    implicitWidth: 24; implicitHeight: 24; radius: 12
+                    implicitWidth: Theme.px(24); implicitHeight: Theme.px(24); radius: Theme.px(12)
                     color: xh.hovered ? Qt.rgba(1, 1, 1, 0.18) : "transparent"
-                    Text { anchors.centerIn: parent; text: "\u2715"; color: Theme.text; font.pixelSize: 12 }
+                    Text { anchors.centerIn: parent; text: "\u2715"; color: Theme.text; font.pixelSize: Theme.px(12) }
                     HoverHandler { id: xh }
                     TapHandler { onTapped: updateBanner.dismissed = true }
                 }
@@ -312,23 +312,23 @@ ApplicationWindow {
         property bool isError: false
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 48
+        anchors.bottomMargin: Theme.px(48)
         radius: Theme.radius
         color: isError ? Theme.danger : Theme.surfaceAlt
         border.color: isError ? Theme.danger : Theme.border
-        width: Math.min(toastLabel.implicitWidth + 28, window.width - 80)
-        height: toastLabel.implicitHeight + 18
+        width: Math.min(toastLabel.implicitWidth + Theme.px(28), window.width - Theme.px(80))
+        height: toastLabel.implicitHeight + Theme.px(18)
         opacity: 0
         visible: opacity > 0
         Behavior on opacity { NumberAnimation { duration: 180 } }
         Text {
             id: toastLabel
             anchors.centerIn: parent
-            width: Math.min(implicitWidth, window.width - 108)
+            width: Math.min(implicitWidth, window.width - Theme.px(108))
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             color: Theme.text
-            font.pixelSize: 13
+            font.pixelSize: Theme.px(13)
         }
         Timer { id: toastTimer; interval: 2600; onTriggered: toast.opacity = 0 }
         function show(msg, err) {

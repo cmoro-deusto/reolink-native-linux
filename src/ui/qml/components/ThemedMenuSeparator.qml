@@ -3,8 +3,8 @@ import QtQuick.Controls
 import ReolinkApp
 
 MenuSeparator {
-    padding: 5
-    topPadding: 3
-    bottomPadding: 3
+    padding: Theme.px(5)
+    topPadding: Theme.px(3)
+    bottomPadding: Theme.px(3)
     contentItem: Rectangle { implicitHeight: 1; color: Theme.border }
 }
