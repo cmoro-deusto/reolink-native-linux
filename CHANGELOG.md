@@ -22,6 +22,11 @@ While the project is pre-1.0, minor versions may still change behaviour.
 
 ### Fixed
 
+- **Playback didn't play on the Home Hub.** SD playback streams over the
+  device's HTTP-FLV endpoint, which the Home Hub doesn't serve (it closes the
+  connection without replying). When a device refuses FLV that way, SD
+  playback now switches to Baichuan for that device — the transport HD
+  playback already used.
 - **Sidebar battery badge spacing.** The percentage no longer touches the
   battery icon, and badges line up across cameras whether they read 92% or
   100%.

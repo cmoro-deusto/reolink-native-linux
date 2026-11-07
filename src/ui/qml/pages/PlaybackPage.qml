@@ -280,6 +280,12 @@ Item {
     Connections {
         target: player
         function onStateChanged() {
+            // A device without the FLV endpoint (Home Hub) moves SD playback
+            // to Baichuan at the moment that failed to open.
+            if (player.state === StreamPlayer.Error) {
+                Devices.fallBackFromFlv(page.deviceRow, epochAt(page.playheadSecs), player);
+                return;
+            }
             if (player.state !== StreamPlayer.Stopped)
                 return;
             // Deferred: stop() fires synchronously inside playAt()'s own
@@ -327,12 +333,7 @@ Item {
         // Scrub against the sub stream: it is light and always landscape, so the
         // timeline stays responsive. (HD mode below plays the full-res main.)
         player.loop = false;
-        var url = Devices.playbackUrl(page.deviceRow, epochAt(sec), false);
-        if (url.length > 0) {
-            player.expectedSize = Devices.declaredSize(page.deviceRow, false); // sub
-            player.source = url;
-            player.start();
-        }
+        Devices.startSdPlayback(page.deviceRow, epochAt(sec), player);
     }
 
     // HD: stream the full-resolution main stream over native Baichuan (TCP 9000)
@@ -429,12 +430,8 @@ Item {
                     page._pendingPlayEpoch = 0;
                     page._pendingPlaySecs = -1;
                     page._suppressResume = false; // event playback crosses file boundaries too
-                    var url = Devices.playbackUrl(page.deviceRow, ep, false); // sub stream
-                    if (url.length > 0) {
-                        player.expectedSize = Devices.declaredSize(page.deviceRow, false);
-                        player.source = url;
-                        player.start();
-                    }
+                    player.loop = false;
+                    Devices.startSdPlayback(page.deviceRow, ep, player); // sub stream
                 } else if (page._pendingPlaySecs >= 0) {
                     // Camera switch: resume at the same playhead moment (playAt
                     // respects SD/HD mode and stops if no recording covers it).

@@ -163,6 +163,15 @@ public:
     Q_INVOKABLE void searchRecordings(int row, int year, int month, int day);
     // Playable HTTP-FLV URL for a recording starting at startEpoch (Unix seconds).
     Q_INVOKABLE QString playbackUrl(int row, qint64 startEpoch, bool mainStream = false);
+    // SD (sub stream) recorded playback into `player`: HTTP-FLV where the device
+    // serves it, Baichuan otherwise. Returns false if nothing could be started
+    // (no recording covers startEpoch, or the device isn't ready).
+    Q_INVOKABLE bool startSdPlayback(int row, qint64 startEpoch, rl::StreamPlayer *player);
+    // Call when `player` reports an error. If it was an FLV playback the device
+    // refused outright (the Home Hub serves no /flv endpoint and closes the
+    // connection without a reply), remember that for this host and restart the
+    // same moment over Baichuan. Returns true if it switched.
+    Q_INVOKABLE bool fallBackFromFlv(int row, qint64 startEpoch, rl::StreamPlayer *player);
     // Full-resolution (main-stream) playback: download the clip covering
     // [startEpoch, startEpoch+durationSecs] to a local file, then emit hdClipReady
     // with its path (the file is playable/seekable locally, unlike the FLV path).
@@ -365,6 +374,9 @@ private:
     // Battery levels ride the poll batch, but only every few minutes: they move
     // slowly and the initial value comes from validation.
     QHash<qint64, QDateTime> m_nextBatteryAt;
+    // Hosts whose /flv playback endpoint refused us this session (Home Hub);
+    // their SD playback goes over Baichuan instead.
+    QSet<qint64> m_noFlvHosts;
     bool m_pushWarmed = false;      // one-time warm of the push cache after priming
 
     // Auto-retry of Unreachable hosts, driven by the poll tick. Backoff doubles

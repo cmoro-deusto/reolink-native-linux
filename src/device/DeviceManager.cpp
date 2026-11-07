@@ -1144,6 +1144,45 @@ QString DeviceManager::playbackUrl(int row, qint64 startEpoch, bool mainStream)
                                e.rec.username, e.password, token, seekSecs);
 }
 
+bool DeviceManager::startSdPlayback(int row, qint64 startEpoch, StreamPlayer *player)
+{
+    if (row < 0 || row >= m_entries.size() || !player || startEpoch <= 0)
+        return false;
+    const Entry &e = m_entries.at(row);
+    if (e.rec.kind == QLatin1String("stream") || !e.primed)
+        return false;
+    if (m_noFlvHosts.contains(e.rec.id)) {
+        startBaichuan(row, startEpoch, player, /*mainStream=*/false);
+        return true;
+    }
+    const QString url = playbackUrl(row, startEpoch, false);
+    if (url.isEmpty())
+        return false;
+    player->setExpectedSize(e.subSize);
+    player->setSource(url);
+    player->start();
+    return true;
+}
+
+bool DeviceManager::fallBackFromFlv(int row, qint64 startEpoch, StreamPlayer *player)
+{
+    if (row < 0 || row >= m_entries.size() || !player)
+        return false;
+    // Only the open failing with a bare EOF: the device dropped the request
+    // without answering. A busy NVR answers with an HTTP error instead, and
+    // that keeps the normal retry path.
+    if (!player->source().contains(QLatin1String("/flv?"))
+        || player->errorString() != QLatin1String("End of file"))
+        return false;
+    const qint64 hostId = m_entries.at(row).rec.id;
+    if (!m_noFlvHosts.contains(hostId)) {
+        qCInfo(lcMedia) << "No FLV playback on" << m_entries.at(row).rec.addr
+                        << "- using Baichuan for SD playback";
+        m_noFlvHosts.insert(hostId);
+    }
+    return startSdPlayback(row, startEpoch, player);
+}
+
 void DeviceManager::requestHdClip(int row, qint64 startEpoch, int durationSecs)
 {
     auto client = clientFor(row);

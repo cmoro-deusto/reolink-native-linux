@@ -97,6 +97,12 @@ Rectangle {
     Connections {
         target: player
         function onStateChanged() {
+            // A device without the FLV endpoint (Home Hub) moves SD playback
+            // to Baichuan at the moment that failed to open.
+            if (player.state === StreamPlayer.Error) {
+                Devices.fallBackFromFlv(root.deviceRow, root.epochOf(root.playheadSecs), player);
+                return;
+            }
             if (player.state !== StreamPlayer.Stopped)
                 return;
             // Deferred: stop() fires synchronously inside playAtSecs()'s own
@@ -129,13 +135,8 @@ Rectangle {
             playHd(sec);
             return;
         }
-        var url = Devices.playbackUrl(deviceRow, epoch, false); // sub stream
-        if (url.length === 0)
-            return;
         player.loop = false;
-        player.expectedSize = Devices.declaredSize(deviceRow, false);
-        player.source = url;
-        player.start();
+        Devices.startSdPlayback(deviceRow, epoch, player); // sub stream
     }
 
     function stopPlayback() {
