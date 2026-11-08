@@ -6,6 +6,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
+## [0.6.0] — 2026-11-08
+
+### Added
+
+- **Recordings keep their sound.** The record button now writes the
+  camera's AAC audio into the MP4 alongside the video.
+- **Sound in Playback.** A speaker button plays a recording's audio: in the
+  control row for the single view, and on each pane of the 4-pane grid (one
+  audible at a time).
+- **Talk from pop-out windows**, with the same 🎙 button as live panes.
+- **Hold to talk.** Press and hold 🎙 to talk only while held; a click still
+  toggles talk on and off.
+- **Microphone level meter** next to the "Talking" badge, and **microphone
+  choice**: right-click 🎙 to pick a microphone instead of the system
+  default (remembered).
+
+### Fixed
+
+- **HD recordings were unplayable.** Recording an HD pane (Baichuan) wrote
+  every frame with nonsense timing, so the file played as a single instant.
+  Frames now carry the camera's own timestamps.
+- **A doorbell's quick reply went to the wrong camera** behind an NVR or hub
+  (it always used the first channel).
+- Talk started from a pop-out window was cut off when the camera's grid pane
+  was hidden; each surface now only ends talk it started.
+
 ## [0.5.0] — 2026-11-08
 
 ### Added
@@ -340,6 +366,7 @@ First release of this fork (see the README); it diverges from upstream from here
 Initial development release: live view, playback, events and device settings,
 published as an AppImage and a Flatpak bundle.
 
+[0.6.0]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.2...v0.3.3

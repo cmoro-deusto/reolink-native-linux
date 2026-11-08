@@ -27,6 +27,9 @@
     <category>Video</category>
   </categories>
   <releases>
+    <release version="0.6.0" date="2026-11-08">
+      <description><p>Recordings keep the camera's sound, and HD recordings play correctly again. Playback gets a speaker button. Talk works from pop-out windows too, can be held to talk, shows a microphone level meter, and lets you pick the microphone.</p></description>
+    </release>
     <release version="0.5.0" date="2026-11-08">
       <description><p>Two-way talk: click the microphone button on a live camera to speak through its speaker, and answering a doorbell starts talk too. Also fixes a doorbell behind an NVR or hub opening the wrong camera when its alert was answered.</p></description>
     </release>
