@@ -27,6 +27,9 @@
     <category>Video</category>
   </categories>
   <releases>
+    <release version="0.5.0" date="2026-11-08">
+      <description><p>Two-way talk: click the microphone button on a live camera to speak through its speaker, and answering a doorbell starts talk too. Also fixes a doorbell behind an NVR or hub opening the wrong camera when its alert was answered.</p></description>
+    </release>
     <release version="0.4.0" date="2026-11-08">
       <description><p>Live audio: unmute a live pane or a pop-out window to hear that camera. Only one is audible at a time, and the sound stays continuous on Home Hub cameras that deliver it in bursts.</p></description>
     </release>

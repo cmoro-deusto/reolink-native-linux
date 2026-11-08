@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
+## [0.5.0] — 2026-11-08
+
+### Added
+
+- **Two-way talk.** Click 🎙 on a live pane to speak through that camera's
+  speaker from your default microphone; click again to stop. A red
+  "Talking" badge shows while the microphone is live, and talk ends when the
+  pane is hidden or you leave Live View. Answering a doorbell starts talk on
+  it. Talk uses its own Baichuan connection, so it doesn't disturb the video.
+  If someone else holds the camera's speaker, the app releases it once and
+  retries, then says so. Verified on an E1 Pro and an Argus 4 Pro behind a
+  Home Hub Pro; the audio format is documented in `docs/research/talk.md`.
+
+### Fixed
+
+- **A doorbell behind an NVR or hub opened the wrong camera** when its visitor
+  alert was answered: it picked the host's first camera instead of the
+  doorbell's channel.
+
 ## [0.4.0] — 2026-11-08
 
 ### Added
@@ -321,6 +340,7 @@ First release of this fork (see the README); it diverges from upstream from here
 Initial development release: live view, playback, events and device settings,
 published as an AppImage and a Flatpak bundle.
 
+[0.5.0]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.1...v0.3.2
