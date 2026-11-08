@@ -33,6 +33,7 @@ namespace rl {
 // registered metatype without its PointerToQObject flag.
 class BaichuanClient;
 class ReolinkHttpClient;
+class TalkSession;
 }
 
 namespace rl {
@@ -46,6 +47,10 @@ class DeviceManager : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
+    // Two-way talk: the row being talked to (-1 = none), and whether that
+    // session is still connecting. One talk session at a time.
+    Q_PROPERTY(int talkRow READ talkRow NOTIFY talkChanged)
+    Q_PROPERTY(bool talkConnecting READ talkConnecting NOTIFY talkChanged)
 
 public:
     enum Role {
@@ -150,6 +155,13 @@ public:
     Q_INVOKABLE void ptzMove(int row, const QString &op, int speed = 32);
     Q_INVOKABLE void ptzStop(int row);
     Q_INVOKABLE void ptzPreset(int row, int presetId);
+    // Two-way talk to a camera's speaker from the default microphone, over its
+    // own Baichuan connection. Starting talk on another camera ends the current
+    // session first. Errors arrive as talkFailed.
+    Q_INVOKABLE void startTalk(int row);
+    Q_INVOKABLE void stopTalk();
+    int talkRow() const { return m_talkRow; }
+    bool talkConnecting() const { return m_talkConnecting; }
     // Capture a JPEG snapshot; emits snapshotSaved/snapshotFailed.
     Q_INVOKABLE void snapshot(int row);
     // Quiet snapshot for an event thumbnail: fetches a Snap JPEG, downscales it,
@@ -264,6 +276,9 @@ public:
                                    const QString &reqBody = QString());
 
 signals:
+    void talkChanged();
+    // A talk session ended with an error (user-facing message).
+    void talkFailed(int row, const QString &message);
     void countChanged();
     void deviceError(const QString &addr, const QString &message);
     // Outcome of testDevice. problem is "", "transport", "auth", "locked" or
@@ -415,6 +430,11 @@ private:
     // Weak: the StreamPlayer owns the client's lifetime.
     std::weak_ptr<BaichuanClient> m_playbackClient;
     int m_playbackRow = -1;
+
+    // The current two-way talk session (child), and the row it talks to.
+    TalkSession *m_talk = nullptr;
+    int m_talkRow = -1;
+    bool m_talkConnecting = false;
 };
 
 } // namespace rl

@@ -4,6 +4,7 @@
 #include "core/Paths.h"
 #include "media/AudioFeed.h"
 #include "media/BcClipExport.h"
+#include "media/TalkSession.h"
 #include "media/StreamPlayer.h"
 #include "protocol/BaichuanClient.h"
 #include "protocol/BaichuanControl.h"
@@ -93,11 +94,95 @@ DeviceManager::DeviceManager(Database *db, CredentialStore *credentials, QObject
     m_pollTimer.setInterval(10000);
     connect(&m_pollTimer, &QTimer::timeout, this, &DeviceManager::pollDetections);
     m_pollTimer.start();
+
+    // Talk follows its camera: removing that row ends the session, and rows
+    // shifting underneath keep pointing at the same camera.
+    connect(this, &QAbstractItemModel::rowsAboutToBeRemoved, this,
+            [this](const QModelIndex &, int first, int last) {
+                if (m_talkRow >= first && m_talkRow <= last)
+                    stopTalk();
+            });
+    connect(this, &QAbstractItemModel::rowsRemoved, this,
+            [this](const QModelIndex &, int first, int last) {
+                if (m_talkRow > last) {
+                    m_talkRow -= last - first + 1;
+                    emit talkChanged();
+                }
+            });
+    connect(this, &QAbstractItemModel::rowsInserted, this,
+            [this](const QModelIndex &, int first, int last) {
+                if (m_talkRow >= first) {
+                    m_talkRow += last - first + 1;
+                    emit talkChanged();
+                }
+            });
 }
 
 DeviceManager::~DeviceManager()
 {
+    stopTalk();
     m_pending.waitForFinished();
+}
+
+void DeviceManager::startTalk(int row)
+{
+    if (row < 0 || row >= m_entries.size())
+        return;
+    const Entry &e = m_entries.at(row);
+    if (!e.primed || !e.talk) {
+        emit talkFailed(row, tr("This camera doesn't offer two-way talk"));
+        return;
+    }
+    stopTalk();
+    BaichuanTalk::Params p;
+    p.host = e.rec.addr;
+    p.username = e.rec.username;
+    p.password = e.password;
+    p.channel = e.channel;
+    m_talk = new TalkSession(p, this);
+    m_talkRow = row;
+    m_talkConnecting = true;
+    TalkSession *session = m_talk;
+    connect(session, &TalkSession::stateChanged, this,
+            [this, session](TalkSession::State state, const QString &error) {
+                if (session != m_talk)
+                    return; // a session we already let go of
+                switch (state) {
+                case TalkSession::State::Connecting:
+                    return;
+                case TalkSession::State::Talking:
+                    m_talkConnecting = false;
+                    emit talkChanged();
+                    return;
+                case TalkSession::State::Failed:
+                    emit talkFailed(m_talkRow, error);
+                    [[fallthrough]];
+                case TalkSession::State::Stopped:
+                    m_talk = nullptr;
+                    m_talkRow = -1;
+                    m_talkConnecting = false;
+                    session->deleteLater();
+                    emit talkChanged();
+                    return;
+                }
+            });
+    session->start();
+    emit talkChanged();
+}
+
+void DeviceManager::stopTalk()
+{
+    if (!m_talk)
+        return;
+    // Let go now; the worker still sends the last audio and releases the
+    // speaker on its own (the session object only owns the microphone).
+    TalkSession *session = m_talk;
+    m_talk = nullptr;
+    m_talkRow = -1;
+    m_talkConnecting = false;
+    session->stop();
+    session->deleteLater();
+    emit talkChanged();
 }
 
 static constexpr int kBatteryRefreshSecs = 60;

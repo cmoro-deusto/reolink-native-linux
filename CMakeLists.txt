@@ -36,11 +36,14 @@ add_library(reolink_core STATIC
     src/protocol/BcCrypto.h src/protocol/BcCrypto.cpp
     src/protocol/BaichuanClient.h src/protocol/BaichuanClient.cpp
     src/protocol/BaichuanControl.h src/protocol/BaichuanControl.cpp
+    src/protocol/BaichuanTalk.h src/protocol/BaichuanTalk.cpp
     src/device/DeviceManager.h src/device/DeviceManager.cpp
     src/device/DeviceDiscovery.h src/device/DeviceDiscovery.cpp
     src/device/EventManager.h src/device/EventManager.cpp
     src/media/StreamPlayer.h src/media/StreamPlayer.cpp
     src/media/AudioFeed.h src/media/AudioFeed.cpp
+    src/media/AdpcmEncoder.h src/media/AdpcmEncoder.cpp
+    src/media/TalkSession.h src/media/TalkSession.cpp
     src/media/BcMediaParser.h src/media/BcMediaParser.cpp
     src/media/BcClipExport.h src/media/BcClipExport.cpp
 )
@@ -148,7 +151,7 @@ endforeach()
 # ---------------------------------------------------------------------------
 enable_testing()
 foreach(t IN ITEMS test_protocol test_database test_singleinstance test_tls test_baichuan
-        test_rtsp_teardown test_audio)
+        test_rtsp_teardown test_audio test_talk)
     qt_add_executable(${t} tests/${t}.cpp)
     target_link_libraries(${t} PRIVATE reolink_core Qt6::Test)
     add_test(NAME ${t} COMMAND ${t})

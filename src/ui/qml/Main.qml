@@ -199,9 +199,16 @@ ApplicationWindow {
         anchors.centerIn: parent
         z: 100
         onAnswered: {
-            // Answering opens the doorbell's live view; talk wires in with M12.
+            // Answering shows the doorbell full-size in Live View and starts
+            // talking through it. Talk starts once the pane is on screen: a
+            // live pane ends talk when it is hidden.
             active = false;
             nav.currentIndex = 0;
+            const row = deviceRow;
+            if (row >= 0) {
+                liveViewPage.showCamera(row);
+                Qt.callLater(() => Devices.startTalk(row));
+            }
         }
     }
     // Desktop-notification click: bring the window up and play the event back.
@@ -220,7 +227,7 @@ ApplicationWindow {
         target: Devices
         function onDetectionEvent(hostId, channel, type, camera) {
             if (type === "visitor") {
-                doorbell.deviceRow = Devices.rowOfHost(hostId);
+                doorbell.deviceRow = Devices.rowOfHostChannel(hostId, channel);
                 doorbell.camera = camera;
                 doorbell.active = true;
             }
@@ -359,6 +366,7 @@ ApplicationWindow {
         target: Devices
         function onSnapshotSaved(row, path) { toast.show(qsTr("Snapshot saved"), false); }
         function onSnapshotFailed(row, error) { toast.show(qsTr("Snapshot failed: %1").arg(error), true); }
+        function onTalkFailed(row, message) { toast.show(message, true); }
         function onSettingApplied(row, command, ok, error) {
             if (command === "AudioAlarmPlay")
                 toast.show(ok ? qsTr("Siren triggered") : qsTr("Siren failed: %1").arg(error), !ok);

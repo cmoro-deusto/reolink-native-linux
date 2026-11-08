@@ -5,8 +5,8 @@ import ReolinkApp.Core
 
 // High-priority visitor-press surface for Reolink doorbells. Shows live view of
 // the doorbell with Answer (two-way talk), Dismiss, and quick-reply buttons.
-// Raised on a "visitor" event; the answer path uses the Baichuan talk channel
-// (wires in with M12). Dismisses after a timeout if unanswered.
+// Raised on a "visitor" event; Answer opens the doorbell in Live View and
+// starts two-way talk. Dismisses after a timeout if unanswered.
 Rectangle {
     id: root
     property int deviceRow: -1

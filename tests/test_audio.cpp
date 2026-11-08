@@ -169,7 +169,7 @@ private slots:
     }
 
     // Smooth off (no video delay to follow) on a Home Hub camera: 64 ms AAC
-    // frames arrive in bursts with ~230 ms gaps (measured on the Office cam).
+    // frames arrive in bursts with ~230 ms gaps (measured on an E1 Pro behind a Home Hub Pro).
     // A fixed 60 ms buffer ran dry every burst; the learned jitter must grow
     // until playback is continuous.
     void burstyArrivalWithoutSmoothing()

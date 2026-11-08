@@ -246,6 +246,33 @@ QByteArray BaichuanControl::transact(quint32 cmdId, int channel, const QByteArra
     return decryptReply(reply, m_aesKey);
 }
 
+bool BaichuanControl::sendBinary(quint32 cmdId, int channel, const QByteArray &extXml,
+                                 const QByteArray &payload)
+{
+    if (!isOpen())
+        return false;
+    const quint8 chId = channel < 0 ? 250 : static_cast<quint8>(channel + 1);
+    const QByteArray encExt = extXml.isEmpty() ? QByteArray() : bc::aesCfb(extXml, m_aesKey, false);
+    const quint32 messId = (++m_messId) & 0xFFFFFF;
+    const QByteArray msg = modernMessage(cmdId, chId, messId, encExt, payload);
+    if (m_sock->write(msg) != msg.size())
+        return false;
+    m_sock->flush();
+    return true;
+}
+
+bool BaichuanControl::drain()
+{
+    if (!isOpen())
+        return false;
+    m_sock->waitForReadyRead(0);
+    m_netBuf.append(m_sock->readAll());
+    Msg m;
+    while (parseMessage(m_netBuf, m)) {
+    }
+    return isOpen();
+}
+
 QByteArray BaichuanControl::get(quint32 cmdId, int channel, quint16 *statusOut)
 {
     return transact(cmdId, channel, QByteArray(), statusOut);

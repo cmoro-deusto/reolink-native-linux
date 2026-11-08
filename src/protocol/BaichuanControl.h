@@ -71,6 +71,17 @@ public:
     QByteArray transact(quint32 cmdId, int channel, const QByteArray &bodyXml,
                         quint16 *statusOut = nullptr);
 
+    // Fire-and-forget: send cmdId for `channel` with a caller-built Extension
+    // XML (AES-encrypted here) and a binary payload sent as-is (not encrypted),
+    // without waiting for a reply. Used for talk audio (cmd 202), which the hub
+    // acknowledges per message; call drain() to discard those replies.
+    // Returns false if the socket is gone or the write failed.
+    bool sendBinary(quint32 cmdId, int channel, const QByteArray &extXml,
+                    const QByteArray &payload);
+    // Read and discard whatever replies have arrived, without blocking.
+    // Returns false once the connection has dropped.
+    bool drain();
+
     bool isOpen() const;
 
 private:

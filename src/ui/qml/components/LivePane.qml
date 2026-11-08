@@ -32,7 +32,9 @@ Rectangle {
     property bool capSiren: false
     property bool capFloodlight: false
     property bool capTalk: false
-    property bool talkActive: false
+    // Two-way talk with this camera (one session app-wide, owned by Devices).
+    readonly property bool talkActive: hasSource && Devices.talkRow === deviceRow
+    readonly property bool talkConnecting: talkActive && Devices.talkConnecting
     property bool floodOn: false // white-LED/floodlight on state (optimistic)
     // Live audio: this pane is the audible one. The page keeps it to one pane;
     // the speaker button only appears once the stream turns out to carry audio.
@@ -146,8 +148,15 @@ Rectangle {
     // A pane pointed at a different camera must let the old one go now — its
     // session is wanted elsewhere (a swap hands it straight to another pane).
     onDeviceRowChanged: { bcFallback = false; releaseStream(); updateSource(); }
-    onVisibleChanged: updateSource()
-    onPageActiveChanged: updateSource()
+    // Talking needs the pane in front of you: leaving Live View or hiding the
+    // pane ends it.
+    function endTalkIfHidden() {
+        if (talkActive && (!visible || !pageActive))
+            Devices.stopTalk();
+    }
+    onTalkActiveChanged: endTalkIfHidden()
+    onVisibleChanged: { updateSource(); endTalkIfHidden(); }
+    onPageActiveChanged: { updateSource(); endTalkIfHidden(); }
     onEffectiveMainChanged: { bcFallback = false; updateSource(); }
     Component.onCompleted: updateSource()
 
@@ -388,6 +397,14 @@ Rectangle {
             anchors.centerIn: parent
             spacing: Theme.px(6)
             Text { text: root.label; color: "white"; font.pixelSize: Theme.px(11) }
+            // The microphone is live (or about to be): say so plainly.
+            Text {
+                visible: root.talkActive
+                text: root.talkConnecting ? qsTr("● Connecting…") : qsTr("● Talking")
+                color: root.talkConnecting ? Theme.textMuted : Theme.danger
+                font.pixelSize: Theme.px(11)
+                font.bold: !root.talkConnecting
+            }
             Text {
                 visible: root.zoom > 1.01
                 text: root.zoom.toFixed(1) + "×"
@@ -549,13 +566,14 @@ Rectangle {
                 tip: root.audioOn ? qsTr("Mute") : qsTr("Listen")
                 onActivated: root.audioToggled(!root.audioOn)
             }
-            // Two-way talk (push-to-hold). Baichuan talk path is the primary
-            // transport (DESIGN §5.4) and wires in with the M12 protocol work;
-            // this toggles the UI state and mic intent today.
+            // Two-way talk: click to start talking through the camera's
+            // speaker from the default microphone, click again to stop.
             ToolButton {
                 glyph: "🎙"; active: root.talkActive; enabledTool: root.capTalk
-                tip: qsTr("Two-way talk (coming soon)")
-                onActivated: root.talkActive = !root.talkActive
+                tip: root.talkConnecting ? qsTr("Connecting talk…")
+                     : root.talkActive ? qsTr("Stop talking")
+                     : qsTr("Talk through the camera")
+                onActivated: root.talkActive ? Devices.stopTalk() : Devices.startTalk(root.deviceRow)
             }
             ToolButton {
                 glyph: "📢"; enabledTool: root.capSiren
