@@ -34,6 +34,9 @@ Rectangle {
     property bool capTalk: false
     property bool talkActive: false
     property bool floodOn: false // white-LED/floodlight on state (optimistic)
+    // Live audio: this pane is the audible one. The page keeps it to one pane;
+    // the speaker button only appears once the stream turns out to carry audio.
+    property bool audioOn: false
 
     // User stream-quality preference: false = Fluent (sub), true = Clear (main).
     // This alone decides which stream plays — so the SD/HD toolbar toggle works in
@@ -66,6 +69,7 @@ Rectangle {
     // page can remember it for this camera.
     signal gridQualityToggled(bool main)
     signal smoothToggled(bool on)
+    signal audioToggled(bool on)
     // A camera was dropped onto this pane — from the sidebar or another pane.
     signal cameraDropped(int pane, int row)
 
@@ -195,6 +199,7 @@ Rectangle {
         id: player
         videoSink: video.videoSink
         smoothing: root.smooth
+        muted: !root.audioOn
     }
 
     Component.onDestruction: player.stop()
@@ -537,6 +542,12 @@ Rectangle {
                 glyph: "⇅"; active: root.ptzOpen; enabledTool: root.capPtz
                 tip: qsTr("PTZ controls")
                 onActivated: root.ptzOpen = !root.ptzOpen
+            }
+            ToolButton {
+                glyph: root.audioOn ? "🔊" : "🔇"; active: root.audioOn
+                enabledTool: player.hasAudio
+                tip: root.audioOn ? qsTr("Mute") : qsTr("Listen")
+                onActivated: root.audioToggled(!root.audioOn)
             }
             // Two-way talk (push-to-hold). Baichuan talk path is the primary
             // transport (DESIGN §5.4) and wires in with the M12 protocol work;

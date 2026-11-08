@@ -18,6 +18,9 @@ Item {
     property int preset: 4
     property int maximizedIndex: -1
     property int selectedIndex: -1
+    // Device row of the one pane playing sound (-1 = all muted). Not persisted:
+    // the app always opens silent.
+    property int audioRow: -1
 
     // A maximized pane is effectively the single ("1") view, so light that button
     // up in the layout toolbar rather than the underlying grid preset.
@@ -190,6 +193,10 @@ Item {
                 page.selectedIndex -= removed;
             else if (page.selectedIndex >= first)
                 page.selectedIndex = -1;
+            if (page.audioRow > last)
+                page.audioRow -= removed;
+            else if (page.audioRow >= first)
+                page.audioRow = -1;
             // Slots hold row indices, which shift the same way.
             var s = page.paneSlots.slice();
             for (var i = 0; i < s.length; ++i) {
@@ -377,6 +384,8 @@ Item {
                     onGridQualityToggled: (hd) => page.setHd(index, hd)
                     smooth: page.isSmooth(index)
                     onSmoothToggled: (on) => page.setSmooth(index, on)
+                    audioOn: page.audioRow === index
+                    onAudioToggled: (on) => page.audioRow = on ? index : -1
                     capPtz: hasPtz
                     capZoom: hasZoom
                     capAudio: hasAudio

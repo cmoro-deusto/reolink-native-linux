@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Window
 import QtMultimedia
 import ReolinkApp
@@ -13,6 +14,15 @@ Window {
     id: win
     property int deviceRow: -1
     property string label: ""
+    // Owner of the app-wide "one audible source" rule (Main's window): holds
+    // the pop-out that is playing sound, if any.
+    property var audioController: null
+    readonly property bool audioOn: audioController !== null
+                                    && audioController.audiblePopout === win
+    function setAudio(on) {
+        if (audioController)
+            audioController.audiblePopout = on ? win : null;
+    }
 
     width: Theme.px(960)
     height: Theme.px(540)
@@ -30,6 +40,7 @@ Window {
     Item {
         anchors.fill: parent
         clip: true
+        HoverHandler { id: winHover } // reveals the speaker button
 
         VideoOutput {
             id: video
@@ -77,10 +88,47 @@ Window {
                 else clampPan();
             }
         }
+
+        // Speaker toggle, bottom right: shown on hover, and kept up while audible so
+        // it's clear where the sound comes from. It must be a CHILD of this Item:
+        // as a sibling, hovering it un-hovered winHover, which hid it, which
+        // re-hovered winHover — a flicker loop that also swallowed clicks.
+        Rectangle {
+            id: speaker
+            visible: player.hasAudio && player.state === StreamPlayer.Streaming
+                     && (winHover.hovered || speakerHover.hovered || win.audioOn)
+            anchors.bottom: parent.bottom; anchors.right: parent.right; anchors.margins: Theme.px(8)
+            width: Theme.px(34); height: Theme.px(34); radius: Theme.radius
+            color: win.audioOn ? Theme.accentDim : (speakerHover.hovered ? Theme.surfaceAlt : "#cc0d141b")
+            border.color: Theme.border
+            Text {
+                anchors.centerIn: parent
+                text: win.audioOn ? "🔊" : "🔇"
+                color: win.audioOn ? Theme.text : Theme.textMuted
+                font.pixelSize: Theme.px(15)
+            }
+            HoverHandler { id: speakerHover }
+            ToolTip {
+                visible: speakerHover.hovered
+                delay: 500
+                y: -height - Theme.px(6)
+                contentItem: Text {
+                    text: (win.audioOn ? qsTr("Mute") : qsTr("Listen")) + " (M)"
+                    color: Theme.text; font.pixelSize: Theme.px(11)
+                }
+                background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
+            }
+            // Exclusive grab, so the pan/zoom MouseArea underneath can't take the tap.
+            TapHandler {
+                gesturePolicy: TapHandler.ReleaseWithinBounds
+                onTapped: win.setAudio(!win.audioOn)
+            }
+        }
     }
     StreamPlayer {
         id: player
         videoSink: video.videoSink
+        muted: !win.audioOn
     }
     property bool bcFallback: false // Baichuan slot busy -> RTSP main this round
     function startStream() {
@@ -123,7 +171,13 @@ Window {
         }
     }
     property bool closed: false
-    onClosing: { win.closed = true; bcReconnect.stop(); player.stop(); }
+    onClosing: {
+        win.closed = true;
+        bcReconnect.stop();
+        if (win.audioOn)
+            win.setAudio(false);
+        player.stop();
+    }
 
     Text {
         anchors.centerIn: parent
@@ -147,6 +201,12 @@ Window {
                 color: Theme.accent; font.pixelSize: Theme.px(12)
             }
         }
+    }
+
+    Shortcut {
+        sequence: "M"
+        enabled: player.hasAudio
+        onActivated: win.setAudio(!win.audioOn)
     }
 
     Shortcut { sequence: "Escape"; onActivated: win.close() }

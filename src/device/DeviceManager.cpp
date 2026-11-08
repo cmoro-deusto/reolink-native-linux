@@ -2,6 +2,7 @@
 
 #include "core/Log.h"
 #include "core/Paths.h"
+#include "media/AudioFeed.h"
 #include "media/BcClipExport.h"
 #include "media/StreamPlayer.h"
 #include "protocol/BaichuanClient.h"
@@ -1642,8 +1643,15 @@ void DeviceManager::startBaichuan(int row, qint64 startEpoch, StreamPlayer *play
     if (e.rec.kind == QLatin1String("stream") || !e.primed)
         return;
 
-    const BaichuanClient::Params p = bcParams(e.rec.addr, e.rec.username, e.password, e.channel,
-                                              e.uid, mainStream, startEpoch);
+    BaichuanClient::Params p = bcParams(e.rec.addr, e.rec.username, e.password, e.channel,
+                                        e.uid, mainStream, startEpoch);
+    // Audio rides in the same Baichuan stream; hand it to the player's feed,
+    // which decodes it only while the pane is unmuted.
+    auto feed = player->prepareAudioFeed();
+    p.onAudio = [feed](const BcMediaParser::AudioFrame &a) {
+        if (a.codec == BcMediaParser::AudioCodec::AAC)
+            feed->pushAdts(a.data);
+    };
 
     auto client = std::make_shared<BaichuanClient>(p);
     client->start();

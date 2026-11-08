@@ -15,7 +15,7 @@ qt_standard_project_setup(REQUIRES 6.5)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
-    libavformat libavcodec libavutil libswscale)
+    libavformat libavcodec libavutil libswscale libswresample)
 pkg_check_modules(CURL REQUIRED IMPORTED_TARGET libcurl)
 pkg_check_modules(SECRET REQUIRED IMPORTED_TARGET libsecret-1)
 
@@ -40,6 +40,7 @@ add_library(reolink_core STATIC
     src/device/DeviceDiscovery.h src/device/DeviceDiscovery.cpp
     src/device/EventManager.h src/device/EventManager.cpp
     src/media/StreamPlayer.h src/media/StreamPlayer.cpp
+    src/media/AudioFeed.h src/media/AudioFeed.cpp
     src/media/BcMediaParser.h src/media/BcMediaParser.cpp
     src/media/BcClipExport.h src/media/BcClipExport.cpp
 )
@@ -147,7 +148,7 @@ endforeach()
 # ---------------------------------------------------------------------------
 enable_testing()
 foreach(t IN ITEMS test_protocol test_database test_singleinstance test_tls test_baichuan
-        test_rtsp_teardown)
+        test_rtsp_teardown test_audio)
     qt_add_executable(${t} tests/${t}.cpp)
     target_link_libraries(${t} PRIVATE reolink_core Qt6::Test)
     add_test(NAME ${t} COMMAND ${t})

@@ -12,7 +12,11 @@
 #include <memory>
 #include <thread>
 
+class QAudioSink;
+
 namespace rl {
+
+class AudioFeed;
 
 // One live/playback stream: FFmpeg demux + decode on a dedicated worker thread,
 // frames delivered to a QML VideoOutput's QVideoSink (NV12/YUV420P upload path —
@@ -47,6 +51,12 @@ class StreamPlayer : public QObject
     // (0.15 s to start, at most 0.3 s). Takes effect immediately; no effect
     // on file/recorded playback, which is paced already.
     Q_PROPERTY(bool smoothing READ smoothing WRITE setSmoothing NOTIFY smoothingChanged)
+    // Live audio. Muted by default: a grid plays at most the pane the user
+    // unmutes. hasAudio turns true once the running stream turns out to carry
+    // audio this player can decode (false again on stop).
+    Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY mutedChanged)
+    Q_PROPERTY(qreal volume READ volume WRITE setVolume NOTIFY volumeChanged)
+    Q_PROPERTY(bool hasAudio READ hasAudio NOTIFY hasAudioChanged)
 
 public:
     enum class State { Idle, Connecting, Streaming, Error, Stopped };
@@ -70,6 +80,9 @@ public:
         // live smoothing. Optional; returns false when none is queued.
         std::function<bool(qint64 *)> frameTime;
         std::atomic<bool> smoothing{true};
+
+        // Live audio for this session (decoded only while unmuted).
+        std::shared_ptr<AudioFeed> audio;
 
         // Retry on connection error even for non-live sources (playback FLV on a
         // connection-limited NVR often needs a couple of attempts).
@@ -111,6 +124,11 @@ public:
                          std::function<void()> onStop,
                          std::function<bool(qint64 *)> frameTime = {});
 
+    // The audio feed the NEXT start() will use, created on first call. A packet
+    // source that delivers its own audio (native Baichuan) pushes into it; call
+    // before start(). setSource() discards it. Not a QML API.
+    std::shared_ptr<AudioFeed> prepareAudioFeed();
+
     QVideoSink *videoSink() const;
     void setVideoSink(QVideoSink *sink);
 
@@ -126,6 +144,12 @@ public:
 
     bool smoothing() const { return m_smoothing; }
     void setSmoothing(bool on);
+
+    bool muted() const { return m_muted; }
+    void setMuted(bool muted);
+    qreal volume() const { return m_volume; }
+    void setVolume(qreal volume);
+    bool hasAudio() const { return m_hasAudio; }
 
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
@@ -157,11 +181,22 @@ signals:
     void retryOnErrorChanged();
     void smoothingChanged();
     void recordingChanged();
+    void mutedChanged();
+    void volumeChanged();
+    void hasAudioChanged();
     void recordingSaved(const QString &path);
     void recordingFailed(const QString &error);
 
+private slots:
+    // Invoked (queued) by the session's AudioFeed when it first sees audio.
+    void audioDetected();
+
 private:
     void applyState(State state, const QString &error);
+    void setHasAudio(bool has);
+    // Open or close the audio sink to match muted/hasAudio/session.
+    void updateAudioSink();
+    void releaseAudio();
 
     QString m_source;
     QSize m_expectedSize;
@@ -177,6 +212,12 @@ private:
     bool m_recording = false;
     bool m_retryOnError = false;
     bool m_smoothing = true;
+    bool m_muted = true;
+    qreal m_volume = 1.0;
+    bool m_hasAudio = false;
+    std::shared_ptr<AudioFeed> m_pendingFeed; // handed out before start()
+    std::shared_ptr<AudioFeed> m_feed;        // the running session's
+    QAudioSink *m_audioSink = nullptr;        // child; exists only while audible
 
     // Set via QML before start(); copied into each new Session. Survives stop().
     QPointer<QVideoSink> m_pendingSink;

@@ -1,10 +1,14 @@
 #include "StreamPlayer.h"
 
+#include "AudioFeed.h"
 #include "core/Log.h"
 #include "core/Paths.h"
 
+#include <QAudioFormat>
+#include <QAudioSink>
 #include <QDateTime>
 #include <QDeadlineTimer>
+#include <QMediaDevices>
 #include <QThread>
 #include <QTimer>
 #include <QUrl>
@@ -667,6 +671,15 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
                     << "x" << stream->codecpar->height
                     << (hwPixFmt != AV_PIX_FMT_NONE ? "[hw]" : "[sw]");
 
+    // Live audio from the same demux (RTSP/FLV). A packet source has no audio
+    // stream here: its audio reaches the feed from the source itself.
+    int audioIndex = -1;
+    if (!packetSource && s->audio) {
+        audioIndex = av_find_best_stream(fmt, AVMEDIA_TYPE_AUDIO, -1, videoIndex, nullptr, 0);
+        if (audioIndex >= 0 && !s->audio->openDecoder(fmt->streams[audioIndex]->codecpar))
+            audioIndex = -1;
+    }
+
     AVPacket *packet = av_packet_alloc();
     AVFrame *frame = av_frame_alloc();
     AVFrame *hwTransfer = av_frame_alloc();
@@ -776,6 +789,8 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
                     // ahead of the one before it.
                     presentAtUs = qMax(nowUs + playout.wait(srcUs, nowUs), lastPresentAtUs + 1000);
                     lastPresentAtUs = presentAtUs;
+                    if (s->audio)
+                        s->audio->setTargetLatencyUs(playout.delayUs);
                     if (playout.delayUs > loggedDelayUs + 50000) {
                         loggedDelayUs = playout.delayUs;
                         qCInfo(lcMedia) << redacted(source) << "playout delay now"
@@ -784,6 +799,8 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
                 } else {
                     playout.reset();
                     lastPresentAtUs = 0;
+                    if (s->audio)
+                        s->audio->setTargetLatencyUs(0);
                 }
             }
 
@@ -865,6 +882,11 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
             postState(s, State::Error, QStringLiteral("read error / stalled"));
             finalizeRecording();
             return !packetSource && (live || s->retryOnError.load());
+        }
+        if (packet->stream_index == audioIndex) {
+            s->audio->decodePacket(packet);
+            av_packet_unref(packet);
+            continue;
         }
         if (packet->stream_index != videoIndex) {
             av_packet_unref(packet);
@@ -975,6 +997,13 @@ StreamPlayer::~StreamPlayer()
         m_activeStop();
     if (m_pendingStop)
         m_pendingStop();
+    // No signals from here on: just cut the feeds loose. The sink is a child.
+    for (const auto &feed : {m_feed, m_pendingFeed}) {
+        if (feed) {
+            feed->setNotify(nullptr);
+            feed->setEnabled(false);
+        }
+    }
     if (m_session) {
         // Null the back-pointer under the lock so no queued callback touches us
         // after this returns, then signal abort. The detached worker drops the
@@ -996,6 +1025,7 @@ void StreamPlayer::setSource(const QString &source)
     m_pendingFormat.clear();
     m_pendingStop = nullptr;
     m_pendingFrameTime = nullptr;
+    m_pendingFeed.reset(); // a URL source decodes its own audio stream
     m_source = source;
     emit sourceChanged();
 }
@@ -1101,6 +1131,11 @@ void StreamPlayer::start()
         QMutexLocker lock(&s->sinkMutex);
         s->sink = m_pendingSink;
     }
+    s->audio = m_pendingFeed ? std::move(m_pendingFeed) : std::make_shared<AudioFeed>();
+    m_pendingFeed.reset();
+    m_feed = s->audio;
+    m_feed->setNotify(this);
+    m_feed->setEnabled(!m_muted);
     m_session = s;
     // Adopt the pending source's teardown as the running session's teardown, so the
     // stop() above (which tears down the previous session) doesn't kill this source.
@@ -1120,6 +1155,7 @@ void StreamPlayer::stop()
         m_activeStop();
         m_activeStop = nullptr;
     }
+    releaseAudio();
     if (!m_session)
         return;
     {
@@ -1134,6 +1170,93 @@ void StreamPlayer::stop()
     }
     if (m_state != State::Idle)
         applyState(State::Stopped, QString());
+}
+
+std::shared_ptr<AudioFeed> StreamPlayer::prepareAudioFeed()
+{
+    if (!m_pendingFeed)
+        m_pendingFeed = std::make_shared<AudioFeed>();
+    return m_pendingFeed;
+}
+
+void StreamPlayer::setMuted(bool muted)
+{
+    if (m_muted == muted)
+        return;
+    m_muted = muted;
+    if (m_feed)
+        m_feed->setEnabled(!muted);
+    updateAudioSink();
+    emit mutedChanged();
+}
+
+void StreamPlayer::setVolume(qreal volume)
+{
+    volume = qBound<qreal>(0.0, volume, 1.0);
+    if (qFuzzyCompare(m_volume, volume))
+        return;
+    m_volume = volume;
+    if (m_audioSink)
+        m_audioSink->setVolume(volume);
+    emit volumeChanged();
+}
+
+void StreamPlayer::setHasAudio(bool has)
+{
+    if (m_hasAudio == has)
+        return;
+    m_hasAudio = has;
+    emit hasAudioChanged();
+}
+
+void StreamPlayer::audioDetected()
+{
+    if (!m_feed || !m_feed->hasAudio())
+        return; // a stale notification from a session that has since stopped
+    setHasAudio(true);
+    updateAudioSink();
+}
+
+void StreamPlayer::updateAudioSink()
+{
+    const bool want = !m_muted && m_feed && m_hasAudio;
+    if (!want) {
+        if (m_audioSink) {
+            m_audioSink->stop();
+            delete m_audioSink; // also frees its device (parented to the sink)
+            m_audioSink = nullptr;
+        }
+        return;
+    }
+    if (m_audioSink)
+        return;
+    QAudioFormat format;
+    format.setSampleRate(AudioFeed::kRate);
+    format.setChannelCount(AudioFeed::kChannels);
+    format.setSampleFormat(QAudioFormat::Int16);
+    const QAudioDevice device = QMediaDevices::defaultAudioOutput();
+    if (device.isNull() || !device.isFormatSupported(format)) {
+        qCInfo(lcMedia) << "live audio: no output device for 48 kHz stereo";
+        return;
+    }
+    m_audioSink = new QAudioSink(device, format, this);
+    m_audioSink->setBufferSize(static_cast<qsizetype>(
+        AudioFeed::kSinkUs * AudioFeed::kRate / 1000000 * AudioFeed::kBytesPerFrame));
+    m_audioSink->setVolume(m_volume);
+    auto *io = new AudioFeedDevice(m_feed, m_audioSink);
+    io->open(QIODevice::ReadOnly);
+    m_audioSink->start(io);
+}
+
+void StreamPlayer::releaseAudio()
+{
+    if (m_feed) {
+        m_feed->setNotify(nullptr);
+        m_feed->setEnabled(false);
+        m_feed.reset();
+    }
+    updateAudioSink();
+    setHasAudio(false);
 }
 
 void StreamPlayer::applyState(State state, const QString &error)

@@ -305,7 +305,19 @@ ApplicationWindow {
     // Detached camera windows for multi-monitor viewing.
     Component { id: popoutComponent; PoppedWindow {} }
     function openPopout(row, label) {
-        popoutComponent.createObject(window, { deviceRow: row, label: label });
+        popoutComponent.createObject(window, { deviceRow: row, label: label,
+                                               audioController: window });
+    }
+    // One audible source app-wide: the grid's audible pane (liveViewPage.audioRow)
+    // or this pop-out — unmuting either side mutes the other.
+    property var audiblePopout: null
+    onAudiblePopoutChanged: if (audiblePopout) liveViewPage.audioRow = -1
+    Connections {
+        target: liveViewPage
+        function onAudioRowChanged() {
+            if (liveViewPage.audioRow >= 0)
+                window.audiblePopout = null;
+        }
     }
 
     // Transient status toast for one-shot camera actions (snapshot, siren,
