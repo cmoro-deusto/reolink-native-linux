@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the project is pre-1.0, minor versions may still change behaviour.
 
+## [0.4.0] — 2026-11-08
+
+### Added
+
+- **Live audio.** A live pane whose stream carries audio gets a speaker
+  button on its toolbar, and pop-out windows get one in their bottom-right
+  corner (or press M). Unmuting plays that camera's sound; only one pane or
+  window is audible at a time. This works for RTSP sub streams and for
+  HD/Home Hub streams over Baichuan (AAC). The sound follows the Smooth delay
+  so it stays roughly in step with the picture, and its buffer grows on its
+  own when a camera delivers audio in bursts, so it stays continuous with
+  Smooth off. Panes start muted, and muted panes don't decode audio.
+
 ## [0.3.3] — 2026-11-07
 
 ### Fixed
@@ -308,6 +321,7 @@ First release of this fork (see the README); it diverges from upstream from here
 Initial development release: live view, playback, events and device settings,
 published as an AppImage and a Flatpak bundle.
 
+[0.4.0]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/cmoro-deusto/reolink-native-linux/compare/v0.3.0...v0.3.1
