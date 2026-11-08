@@ -3,6 +3,7 @@
 #include "protocol/BaichuanTalk.h"
 
 #include <QAudioFormat>
+#include <QElapsedTimer>
 #include <QObject>
 #include <QPointer>
 
@@ -27,7 +28,10 @@ public:
     enum class State { Connecting, Talking, Stopped, Failed };
     Q_ENUM(State)
 
-    explicit TalkSession(BaichuanTalk::Params params, QObject *parent = nullptr);
+    // microphoneId: a QAudioDevice id; empty, or a device that has gone away,
+    // means the system default input.
+    explicit TalkSession(BaichuanTalk::Params params, const QByteArray &microphoneId = {},
+                         QObject *parent = nullptr);
     ~TalkSession() override;
 
     void start();
@@ -40,6 +44,9 @@ public:
 signals:
     // `error` is user-facing text, set for Failed.
     void stateChanged(rl::TalkSession::State state, const QString &error);
+    // Microphone level, 0..1 on a -60..0 dBFS scale, about 20 times a second
+    // while talking (0 when capture stops).
+    void levelChanged(qreal level);
 
 private slots:
     void onTalkState(int state, const QString &error);
@@ -50,6 +57,9 @@ private:
     void stopMicrophone();
 
     BaichuanTalk::Params m_params;
+    QByteArray m_microphoneId;
+    QElapsedTimer m_levelClock;
+    qreal m_level = 0;
     std::shared_ptr<BaichuanTalk> m_talk;
     State m_state = State::Stopped;
 

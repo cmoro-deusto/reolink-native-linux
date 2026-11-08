@@ -1,6 +1,7 @@
 #include "BcClipExport.h"
 
 #include "core/Log.h"
+#include "media/Adts.h"
 
 #include <QElapsedTimer>
 #include <QFile>
@@ -58,34 +59,6 @@ QByteArray parameterSets(const QByteArray &annexB, bool hevc)
     return out;
 }
 
-struct Adts {
-    int objectType = 0;
-    int sampleRateIndex = 0;
-    int channels = 0;
-    int headerLen = 0;
-    int frameLen = 0;
-};
-
-bool parseAdts(const uchar *p, int n, Adts *out)
-{
-    if (n < 7 || p[0] != 0xFF || (p[1] & 0xF6) != 0xF0)
-        return false;
-    out->headerLen = (p[1] & 1) ? 7 : 9; // protection_absent
-    out->objectType = ((p[2] >> 6) & 3) + 1;
-    out->sampleRateIndex = (p[2] >> 2) & 0xF;
-    out->channels = ((p[2] & 1) << 2) | (p[3] >> 6);
-    out->frameLen = ((p[3] & 3) << 11) | (p[4] << 3) | (p[5] >> 5);
-    return out->sampleRateIndex < 13 && out->channels > 0 && out->frameLen > out->headerLen
-           && out->frameLen <= n;
-}
-
-int sampleRate(int index)
-{
-    static const int rates[13] = {96000, 88200, 64000, 48000, 44100, 32000, 24000,
-                                  22050, 16000, 12000, 11025, 8000,  7350};
-    return rates[index];
-}
-
 // Stream-copies BCMedia frames into an MP4. Video is H.264/H.265 Annex-B (the
 // muxer converts it to length-prefixed using the parameter-set extradata);
 // AAC arrives as ADTS and is unwrapped to raw frames plus an AudioSpecificConfig.
@@ -133,8 +106,8 @@ public:
         const auto *p = reinterpret_cast<const uchar *>(a.data.constData());
         int off = 0;
         while (off < a.data.size()) {
-            Adts h;
-            if (!parseAdts(p + off, a.data.size() - off, &h)) {
+            adts::Header h;
+            if (!adts::parse(p + off, a.data.size() - off, &h)) {
                 if (off == 0)
                     disableAudio("audio isn't ADTS-framed AAC");
                 return;
@@ -143,7 +116,7 @@ public:
                 m_adts = h;
                 m_haveAudioCfg = true;
                 // Anchor the audio clock to the video time it first appears at.
-                m_audioSamples = av_rescale_q(m_videoUs, kMicros, {1, sampleRate(h.sampleRateIndex)});
+                m_audioSamples = av_rescale_q(m_videoUs, kMicros, {1, adts::sampleRate(h.sampleRateIndex)});
             }
             queue({false, true, m_audioSamples,
                    a.data.mid(off + h.headerLen, h.frameLen - h.headerLen)});
@@ -225,7 +198,7 @@ private:
             AVStream *a = avformat_new_stream(m_oc, nullptr);
             if (!a)
                 return fail(QStringLiteral("could not add the audio track"));
-            const int rate = sampleRate(m_adts.sampleRateIndex);
+            const int rate = adts::sampleRate(m_adts.sampleRateIndex);
             a->time_base = {1, rate};
             AVCodecParameters *ap = a->codecpar;
             ap->codec_type = AVMEDIA_TYPE_AUDIO;
@@ -233,12 +206,7 @@ private:
             ap->sample_rate = rate;
             ap->frame_size = 1024;
             av_channel_layout_default(&ap->ch_layout, m_adts.channels);
-            // AudioSpecificConfig: objectType(5) sampleRateIndex(4) channels(4) 000.
-            const quint16 asc = static_cast<quint16>((m_adts.objectType << 11)
-                                                     | (m_adts.sampleRateIndex << 7)
-                                                     | (m_adts.channels << 3));
-            const char ascBytes[2] = {char(asc >> 8), char(asc & 0xff)};
-            setExtradata(ap, QByteArray(ascBytes, 2));
+            setExtradata(ap, adts::audioSpecificConfig(m_adts));
             m_audioIndex = a->index;
         }
 
@@ -293,7 +261,7 @@ private:
                 pkt->flags |= AV_PKT_FLAG_KEY;
             ++m_videoFrames;
         } else {
-            const AVRational srcTb{1, sampleRate(m_adts.sampleRateIndex)};
+            const AVRational srcTb{1, adts::sampleRate(m_adts.sampleRateIndex)};
             pkt->pts = pkt->dts = av_rescale_q(p.ts, srcTb, tb);
             pkt->duration = av_rescale_q(1024, srcTb, tb);
         }
@@ -335,7 +303,7 @@ private:
 
     bool m_noAudio = false;
     bool m_haveAudioCfg = false;
-    Adts m_adts;
+    adts::Header m_adts;
     qint64 m_audioSamples = 0;
     int m_audioIndex = -1;
 };

@@ -6,6 +6,8 @@
 #include <QCoreApplication>
 #include <QMediaDevices>
 
+#include <cmath>
+
 extern "C" {
 #include <libavutil/channel_layout.h>
 #include <libavutil/samplefmt.h>
@@ -34,8 +36,9 @@ AVSampleFormat toAv(QAudioFormat::SampleFormat f)
 
 } // namespace
 
-TalkSession::TalkSession(BaichuanTalk::Params params, QObject *parent)
-    : QObject(parent), m_params(std::move(params))
+TalkSession::TalkSession(BaichuanTalk::Params params, const QByteArray &microphoneId,
+                         QObject *parent)
+    : QObject(parent), m_params(std::move(params)), m_microphoneId(microphoneId)
 {
 }
 
@@ -102,7 +105,12 @@ void TalkSession::onTalkState(int state, const QString &error)
 
 bool TalkSession::startMicrophone()
 {
-    const QAudioDevice device = QMediaDevices::defaultAudioInput();
+    QAudioDevice device = QMediaDevices::defaultAudioInput();
+    if (!m_microphoneId.isEmpty()) {
+        for (const QAudioDevice &d : QMediaDevices::audioInputs())
+            if (d.id() == m_microphoneId)
+                device = d;
+    }
     if (device.isNull())
         return false;
     // Ask for the camera's format directly; fall back to what the device
@@ -146,6 +154,10 @@ bool TalkSession::startMicrophone()
 
 void TalkSession::stopMicrophone()
 {
+    if (m_level != 0) {
+        m_level = 0;
+        emit levelChanged(0);
+    }
     if (m_source) {
         m_source->stop();
         delete m_source;
@@ -171,8 +183,23 @@ void TalkSession::readMicrophone()
     auto *dst = reinterpret_cast<uint8_t *>(m_convBuf.data());
     const auto *src = reinterpret_cast<const uint8_t *>(in.constData());
     const int got = swr_convert(m_swr, &dst, maxOut, &src, frames);
-    if (got > 0)
-        m_talk->pushPcm(reinterpret_cast<const qint16 *>(m_convBuf.constData()), got);
+    if (got <= 0)
+        return;
+    const auto *pcm = reinterpret_cast<const qint16 *>(m_convBuf.constData());
+    m_talk->pushPcm(pcm, got);
+
+    // Level meter: the chunk's RMS on a -60..0 dBFS scale, falling back slowly
+    // so speech doesn't flicker, and reported at most ~20 times a second.
+    double sum = 0;
+    for (int i = 0; i < got; ++i)
+        sum += double(pcm[i]) * pcm[i];
+    const double rms = std::sqrt(sum / got) / 32768.0;
+    const qreal now = qBound(0.0, (20 * std::log10(std::max(rms, 1e-6)) + 60) / 60, 1.0);
+    m_level = std::max(now, m_level * 0.85);
+    if (!m_levelClock.isValid() || m_levelClock.elapsed() >= 50) {
+        m_levelClock.start();
+        emit levelChanged(m_level);
+    }
 }
 
 } // namespace rl

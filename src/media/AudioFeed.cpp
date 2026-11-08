@@ -109,9 +109,46 @@ void AudioFeed::decodePacket(const AVPacket *packet)
     decodeFrames();
 }
 
-void AudioFeed::pushAdts(const QByteArray &adts)
+void AudioFeed::setTap(bool on)
+{
+    QMutexLocker lock(&m_mutex);
+    m_tapOn = on;
+    m_tap.clear();
+}
+
+std::vector<AudioFeed::TapFrame> AudioFeed::takeTap()
+{
+    QMutexLocker lock(&m_mutex);
+    std::vector<TapFrame> out;
+    out.swap(m_tap);
+    return out;
+}
+
+bool AudioFeed::lastAdts(adts::Header *out) const
+{
+    QMutexLocker lock(&m_mutex);
+    if (m_haveAdts)
+        *out = m_lastAdts;
+    return m_haveAdts;
+}
+
+void AudioFeed::pushAdts(const QByteArray &adtsData, qint64 videoUs)
 {
     markHasAudio();
+    {
+        // Remember the format, and feed a recording, before the muted check.
+        const auto *p = reinterpret_cast<const uchar *>(adtsData.constData());
+        QMutexLocker lock(&m_mutex);
+        adts::Header h;
+        for (int off = 0; off < adtsData.size() && adts::parse(p + off, adtsData.size() - off, &h);
+             off += h.frameLen) {
+            m_lastAdts = h;
+            m_haveAdts = true;
+            if (m_tapOn && m_tap.size() < 1000) // bounded if nobody takes them
+                m_tap.push_back({adtsData.mid(off + h.headerLen, h.frameLen - h.headerLen), h, videoUs});
+        }
+    }
+    const QByteArray &adts = adtsData;
     if (!m_enabled.load() || adts.isEmpty())
         return;
     if (!m_dec) {

@@ -349,8 +349,11 @@ void BaichuanClient::pumpMedia(QTcpSocket &sock, const QByteArray &aesKey, quint
     // Audio rides along only once video has started on a keyframe.
     if (m_p.onAudio)
         parser.onAudio = [&](const BcMediaParser::AudioFrame &a) {
-            if (started)
-                m_p.onAudio(a);
+            if (!started)
+                return;
+            BcMediaParser::AudioFrame stamped = a;
+            stamped.videoUs = m_microsTotal;
+            m_p.onAudio(stamped);
         };
     QElapsedTimer clock;
     quint32 firstMicros = 0;

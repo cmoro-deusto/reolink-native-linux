@@ -267,6 +267,47 @@ private slots:
         player.stop();
         QVERIFY(!player.hasAudio());
     }
+
+    // The record button keeps the stream's audio: a file with video + AAC
+    // records to an MP4 with both tracks, of matching length.
+    void recordingKeepsAudio()
+    {
+        QTemporaryDir dir;
+        const QString src = dir.filePath(QStringLiteral("av.mp4"));
+        const QString out = dir.filePath(QStringLiteral("rec.mp4"));
+        QProcess ff;
+        ff.start(QStringLiteral("ffmpeg"),
+                 {"-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x240:rate=15",
+                  "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=16000", "-t", "6",
+                  "-c:v", "libx264", "-g", "15", "-c:a", "aac", "-shortest", src});
+        if (!ff.waitForFinished(30000) || ff.exitCode() != 0)
+            QSKIP("ffmpeg CLI with libx264 not available");
+
+        StreamPlayer player;
+        QSignalSpy saved(&player, &StreamPlayer::recordingSaved);
+        player.setSource(src);
+        player.start();
+        QTRY_VERIFY_WITH_TIMEOUT(player.state() == StreamPlayer::State::Streaming, 5000);
+        QVERIFY(player.startRecording(out));
+        QTest::qWait(3000);
+        player.stopRecording();
+        QTRY_COMPARE_WITH_TIMEOUT(saved.count(), 1, 5000);
+        player.stop();
+
+        AVFormatContext *fmt = nullptr;
+        QCOMPARE(avformat_open_input(&fmt, out.toUtf8().constData(), nullptr, nullptr), 0);
+        QVERIFY(avformat_find_stream_info(fmt, nullptr) >= 0);
+        const int v = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+        const int a = av_find_best_stream(fmt, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+        QVERIFY(v >= 0);
+        QVERIFY2(a >= 0, "recording has no audio track");
+        QCOMPARE(fmt->streams[a]->codecpar->codec_id, AV_CODEC_ID_AAC);
+        const double vDur = fmt->streams[v]->duration * av_q2d(fmt->streams[v]->time_base);
+        const double aDur = fmt->streams[a]->duration * av_q2d(fmt->streams[a]->time_base);
+        avformat_close_input(&fmt);
+        QVERIFY2(vDur > 1.5, qPrintable(QString::number(vDur)));
+        QVERIFY2(std::abs(vDur - aDur) < 0.3, qPrintable(QStringLiteral("video %1 s, audio %2 s").arg(vDur).arg(aDur)));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestAudio)

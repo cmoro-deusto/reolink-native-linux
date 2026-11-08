@@ -51,6 +51,11 @@ class DeviceManager : public QAbstractListModel
     // session is still connecting. One talk session at a time.
     Q_PROPERTY(int talkRow READ talkRow NOTIFY talkChanged)
     Q_PROPERTY(bool talkConnecting READ talkConnecting NOTIFY talkChanged)
+    // Microphone level while talking (0..1), for a meter.
+    Q_PROPERTY(qreal talkLevel READ talkLevel NOTIFY talkLevelChanged)
+    // The microphone talk uses: a device id from microphones(), or "" for the
+    // system default. Remembered across restarts.
+    Q_PROPERTY(QString talkMicrophone READ talkMicrophone WRITE setTalkMicrophone NOTIFY talkMicrophoneChanged)
 
 public:
     enum Role {
@@ -162,6 +167,12 @@ public:
     Q_INVOKABLE void stopTalk();
     int talkRow() const { return m_talkRow; }
     bool talkConnecting() const { return m_talkConnecting; }
+    qreal talkLevel() const { return m_talkLevel; }
+    QString talkMicrophone() const;
+    // Switching microphone mid-talk restarts the session on the new one.
+    void setTalkMicrophone(const QString &id);
+    // Available microphones: [{id, name, isDefault}].
+    Q_INVOKABLE QVariantList microphones() const;
     // Capture a JPEG snapshot; emits snapshotSaved/snapshotFailed.
     Q_INVOKABLE void snapshot(int row);
     // Quiet snapshot for an event thumbnail: fetches a Snap JPEG, downscales it,
@@ -277,6 +288,8 @@ public:
 
 signals:
     void talkChanged();
+    void talkLevelChanged();
+    void talkMicrophoneChanged();
     // A talk session ended with an error (user-facing message).
     void talkFailed(int row, const QString &message);
     void countChanged();
@@ -435,6 +448,7 @@ private:
     TalkSession *m_talk = nullptr;
     int m_talkRow = -1;
     bool m_talkConnecting = false;
+    qreal m_talkLevel = 0;
 };
 
 } // namespace rl

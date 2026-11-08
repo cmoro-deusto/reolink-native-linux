@@ -1,5 +1,7 @@
 #pragma once
 
+#include "media/Adts.h"
+
 #include <QByteArray>
 #include <QIODevice>
 #include <QMutex>
@@ -7,6 +9,7 @@
 
 #include <atomic>
 #include <memory>
+#include <vector>
 
 struct AVCodecContext;
 struct AVCodecParameters;
@@ -71,7 +74,24 @@ public:
     // Decode one demuxed packet of the stream given to openDecoder().
     void decodePacket(const AVPacket *packet);
     // Baichuan AAC: one or more ADTS frames, split with FFmpeg's AAC parser.
-    void pushAdts(const QByteArray &adts);
+    // videoUs: device time of the latest video frame when this arrived (-1 if
+    // unknown), used to place the audio in a recording.
+    void pushAdts(const QByteArray &adts, qint64 videoUs = -1);
+
+    // ---- Recording tap (Baichuan AAC) ---------------------------------------
+    // While on, every ADTS frame is also kept, header stripped, for the
+    // recorder to take — muted or not. The demux path doesn't need it: the
+    // recorder reads that audio from the demuxer itself.
+    struct TapFrame {
+        QByteArray aac;        // raw AAC frame (no ADTS header)
+        adts::Header header;   // its ADTS parameters
+        qint64 videoUs = -1;   // see pushAdts
+    };
+    void setTap(bool on);
+    std::vector<TapFrame> takeTap();
+    // Parameters of the last ADTS frame seen, so a recording can declare its
+    // audio track before the first frame lands. False if none seen yet.
+    bool lastAdts(adts::Header *out) const;
 
     // ---- Shared -------------------------------------------------------------
     void setEnabled(bool on);
@@ -118,6 +138,10 @@ private:
     mutable QMutex m_mutex; // guards the fields below
     QByteArray m_pcm;
     bool m_priming = true;
+    bool m_tapOn = false;
+    std::vector<TapFrame> m_tap;
+    adts::Header m_lastAdts;
+    bool m_haveAdts = false;
     qint64 m_jitterUs = kMinBufferUs;
     qint64 m_cleanBytes = 0; // played since the last underrun / relax
     qint64 m_minFill = -1;   // lowest queue level after a read in this window

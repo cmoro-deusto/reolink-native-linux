@@ -42,6 +42,7 @@ add_library(reolink_core STATIC
     src/device/EventManager.h src/device/EventManager.cpp
     src/media/StreamPlayer.h src/media/StreamPlayer.cpp
     src/media/AudioFeed.h src/media/AudioFeed.cpp
+    src/media/Adts.h
     src/media/AdpcmEncoder.h src/media/AdpcmEncoder.cpp
     src/media/TalkSession.h src/media/TalkSession.cpp
     src/media/BcMediaParser.h src/media/BcMediaParser.cpp
@@ -75,6 +76,8 @@ set(APP_QML_FILES
     src/ui/qml/components/CameraComboBox.qml
     src/ui/qml/components/DoorbellOverlay.qml
     src/ui/qml/components/PoppedWindow.qml
+    src/ui/qml/components/TalkButton.qml
+    src/ui/qml/components/TalkBadge.qml
     src/ui/qml/components/FisheyeView.qml
     src/ui/qml/pages/LiveViewPage.qml
     src/ui/qml/pages/PlaybackPage.qml

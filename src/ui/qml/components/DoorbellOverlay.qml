@@ -83,8 +83,9 @@ Rectangle {
             }
             ActionBtn {
                 label: qsTr("Quick reply")
+                // The doorbell's own channel: behind an NVR or hub it isn't 0.
                 onClicked: Devices.applySetting(root.deviceRow, "QuickReplyPlay",
-                    { "channel": 0, "id": 0 })
+                    { "channel": Devices.channelOf(root.deviceRow), "id": 0 })
             }
             ActionBtn {
                 label: qsTr("Dismiss")

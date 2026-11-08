@@ -8,6 +8,7 @@
 #include <QAudioSink>
 #include <QDateTime>
 #include <QDeadlineTimer>
+#include <QElapsedTimer>
 #include <QMediaDevices>
 #include <QThread>
 #include <QTimer>
@@ -234,33 +235,81 @@ void postRecording(const std::shared_ptr<Session> &s, bool recording, const QStr
         Qt::QueuedConnection);
 }
 
-// Stream-copy recorder: taps the live demux, muxing video packets into an MP4
-// without re-encoding (DESIGN §5.5). Starts on the next keyframe and rebases
-// timestamps so the file begins at t=0.
+constexpr AVRational kMicros{1, 1000000};
+
+// Stream-copy recorder: taps the live session into an MP4 without re-encoding
+// (DESIGN §5.5). Starts on the next keyframe and rebases timestamps so the file
+// begins at t=0. AAC audio rides along when the stream has it: copied from the
+// demuxer for URL sources, or taken from the AudioFeed tap for Baichuan, whose
+// audio arrives outside the demux and without timestamps of its own.
 struct Recorder {
     AVFormatContext *oc = nullptr;
-    int outIndex = -1;
-    int inIndex = -1;
-    AVRational inTb{};
+    int vOut = -1;
+    int vIn = -1;
+    AVRational vTb{};
+    int aOut = -1;        // output audio stream (-1 = video only)
+    int aIn = -1;         // demux audio stream (-1 = tap audio, or none)
+    AVRational aInTb{};
+    int tapRate = 0;      // tap audio: sample rate
+    qint64 tapNext = -1;  // tap audio: next frame's timestamp, in samples
     bool waitingKey = true;
-    qint64 startTs = AV_NOPTS_VALUE;
+    qint64 startTs = AV_NOPTS_VALUE; // first keyframe, video time base
+    qint64 startUs = 0;              // the same, in µs
+    qint64 lastVideoUs = -1;         // latest video written, µs from the start
     QString path;
 
     bool active() const { return oc != nullptr; }
 
-    bool open(const QString &outPath, const AVStream *in)
+    // `audioIn`: the demuxer's audio stream, or null. `tapAudio`: parameters of
+    // the Baichuan AAC the tap will deliver, or null. Only AAC is recorded.
+    bool open(const QString &outPath, const AVStream *video, const AVStream *audioIn,
+              const adts::Header *tapAudio)
     {
         path = outPath;
-        inIndex = in->index;
-        inTb = in->time_base;
+        vIn = video->index;
+        vTb = video->time_base;
         const QByteArray p = outPath.toUtf8();
         if (avformat_alloc_output_context2(&oc, nullptr, "mp4", p.constData()) < 0 || !oc)
             return false;
         AVStream *out = avformat_new_stream(oc, nullptr);
-        if (!out || avcodec_parameters_copy(out->codecpar, in->codecpar) < 0)
+        if (!out || avcodec_parameters_copy(out->codecpar, video->codecpar) < 0)
             return false;
         out->codecpar->codec_tag = 0; // let the muxer choose (avc1/hvc1)
-        outIndex = out->index;
+        vOut = out->index;
+
+        if (audioIn && audioIn->codecpar->codec_id == AV_CODEC_ID_AAC
+            && audioIn->codecpar->extradata_size > 0) {
+            AVStream *a = avformat_new_stream(oc, nullptr);
+            if (a && avcodec_parameters_copy(a->codecpar, audioIn->codecpar) >= 0) {
+                a->codecpar->codec_tag = 0;
+                a->time_base = {1, audioIn->codecpar->sample_rate};
+                aOut = a->index;
+                aIn = audioIn->index;
+                aInTb = audioIn->time_base;
+            }
+        } else if (tapAudio && adts::sampleRate(tapAudio->sampleRateIndex) > 0) {
+            AVStream *a = avformat_new_stream(oc, nullptr);
+            if (a) {
+                tapRate = adts::sampleRate(tapAudio->sampleRateIndex);
+                a->time_base = {1, tapRate};
+                AVCodecParameters *ap = a->codecpar;
+                ap->codec_type = AVMEDIA_TYPE_AUDIO;
+                ap->codec_id = AV_CODEC_ID_AAC;
+                ap->sample_rate = tapRate;
+                ap->frame_size = 1024;
+                av_channel_layout_default(&ap->ch_layout, tapAudio->channels);
+                const QByteArray asc = adts::audioSpecificConfig(*tapAudio);
+                ap->extradata = static_cast<uint8_t *>(
+                    av_mallocz(asc.size() + AV_INPUT_BUFFER_PADDING_SIZE));
+                memcpy(ap->extradata, asc.constData(), asc.size());
+                ap->extradata_size = asc.size();
+                aOut = a->index;
+            }
+        } else if (audioIn) {
+            qCInfo(lcMedia) << "recording without audio:"
+                            << avcodec_get_name(audioIn->codecpar->codec_id) << "isn't recorded";
+        }
+
         if (!(oc->oformat->flags & AVFMT_NOFILE) &&
             avio_open(&oc->pb, p.constData(), AVIO_FLAG_WRITE) < 0)
             return false;
@@ -272,34 +321,105 @@ struct Recorder {
             return false;
         waitingKey = true;
         startTs = AV_NOPTS_VALUE;
+        tapNext = -1;
+        lastVideoUs = -1;
         return true;
     }
 
+    bool hasAudio() const { return aOut >= 0; }
+    bool tapsAudio() const { return aOut >= 0 && aIn < 0; }
+
     void write(const AVPacket *src)
     {
-        if (src->stream_index != inIndex)
+        if (src->stream_index != vIn)
             return;
         if (waitingKey) {
             if (!(src->flags & AV_PKT_FLAG_KEY))
                 return; // start on a keyframe so the file is decodable
             waitingKey = false;
             startTs = src->pts != AV_NOPTS_VALUE ? src->pts : src->dts;
+            startUs = startTs == AV_NOPTS_VALUE ? 0 : av_rescale_q(startTs, vTb, kMicros);
         }
         AVPacket *pkt = av_packet_clone(src); // original continues to the decoder
         if (!pkt)
             return;
-        pkt->stream_index = outIndex;
-        const AVRational outTb = oc->streams[outIndex]->time_base;
+        pkt->stream_index = vOut;
+        const AVRational outTb = oc->streams[vOut]->time_base;
         const qint64 off = startTs == AV_NOPTS_VALUE ? 0 : startTs;
         const auto rnd = static_cast<AVRounding>(AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX);
         if (pkt->pts != AV_NOPTS_VALUE)
-            pkt->pts = av_rescale_q_rnd(pkt->pts - off, inTb, outTb, rnd);
+            pkt->pts = av_rescale_q_rnd(pkt->pts - off, vTb, outTb, rnd);
         if (pkt->dts != AV_NOPTS_VALUE)
-            pkt->dts = av_rescale_q_rnd(pkt->dts - off, inTb, outTb, rnd);
-        pkt->duration = av_rescale_q(pkt->duration, inTb, outTb);
+            pkt->dts = av_rescale_q_rnd(pkt->dts - off, vTb, outTb, rnd);
+        pkt->duration = av_rescale_q(pkt->duration, vTb, outTb);
         pkt->pos = -1;
+        if (src->pts != AV_NOPTS_VALUE)
+            lastVideoUs = av_rescale_q(src->pts - off, vTb, kMicros);
         av_interleaved_write_frame(oc, pkt); // takes ownership of pkt's contents
         av_packet_free(&pkt);
+    }
+
+    // A demuxed audio packet (URL sources), placed on the same clock as video.
+    void writeAudio(const AVPacket *src)
+    {
+        if (waitingKey || aIn < 0 || src->stream_index != aIn || src->pts == AV_NOPTS_VALUE)
+            return;
+        const qint64 us = av_rescale_q(src->pts, aInTb, kMicros) - startUs;
+        if (us < 0)
+            return; // from before the first keyframe
+        AVPacket *pkt = av_packet_clone(src);
+        if (!pkt)
+            return;
+        const AVRational outTb = oc->streams[aOut]->time_base;
+        pkt->stream_index = aOut;
+        pkt->pts = pkt->dts = av_rescale_q(us, kMicros, outTb);
+        pkt->duration = av_rescale_q(pkt->duration, aInTb, outTb);
+        pkt->pos = -1;
+        av_interleaved_write_frame(oc, pkt);
+        av_packet_free(&pkt);
+    }
+
+    // Baichuan AAC from the tap. Frames are 1024 samples back to back, so they
+    // are timed by a sample count anchored where the first one arrived on the
+    // video clock; if that count drifts from the arrival clock by more than
+    // 0.3 s (a gap in the audio), it jumps forward or drops audio to resync.
+    void writeTap(const std::vector<AudioFeed::TapFrame> &frames)
+    {
+        if (waitingKey || !tapsAudio())
+            return;
+        constexpr qint64 kResyncUs = 300000;
+        for (const AudioFeed::TapFrame &f : frames) {
+            if (adts::sampleRate(f.header.sampleRateIndex) != tapRate || f.aac.isEmpty())
+                continue; // the track's format is fixed once the file starts
+            // Where it arrived on the video clock; without a device time, the
+            // latest video written stands in.
+            const qint64 arrivalUs = f.videoUs >= 0 ? f.videoUs - startUs : lastVideoUs;
+            if (tapNext < 0) {
+                if (arrivalUs < 0)
+                    continue; // from before the first keyframe
+                tapNext = av_rescale_q(arrivalUs, kMicros, {1, tapRate});
+            } else if (arrivalUs >= 0) {
+                const qint64 nextUs = av_rescale_q(tapNext, {1, tapRate}, kMicros);
+                if (arrivalUs - nextUs > kResyncUs)
+                    tapNext = av_rescale_q(arrivalUs, kMicros, {1, tapRate});
+                else if (nextUs - arrivalUs > kResyncUs)
+                    continue; // running ahead: drop until the clocks meet again
+            }
+            AVPacket *pkt = av_packet_alloc();
+            if (!pkt || av_new_packet(pkt, static_cast<int>(f.aac.size())) < 0) {
+                av_packet_free(&pkt);
+                return;
+            }
+            memcpy(pkt->data, f.aac.constData(), f.aac.size());
+            const AVRational outTb = oc->streams[aOut]->time_base;
+            pkt->stream_index = aOut;
+            pkt->pts = pkt->dts = av_rescale_q(tapNext, {1, tapRate}, outTb);
+            pkt->duration = av_rescale_q(1024, {1, tapRate}, outTb);
+            pkt->flags |= AV_PKT_FLAG_KEY;
+            av_interleaved_write_frame(oc, pkt);
+            av_packet_free(&pkt);
+            tapNext += 1024;
+        }
     }
 
     // Writes the trailer and closes; returns the path (empty on nothing recorded).
@@ -316,6 +436,9 @@ struct Recorder {
             avio_closep(&oc->pb);
         avformat_free_context(oc);
         oc = nullptr;
+        vOut = aOut = aIn = -1;
+        tapRate = 0;
+        tapNext = -1;
         return result;
     }
 };
@@ -770,19 +893,13 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
                     abortableSleepUs(s.get(), waitUs);
             }
 
-            // Live playout smoothing. A packet source's frame times are taken for
-            // every frame, smoothing on or off, so they stay in step with decode.
+            // Live playout smoothing, on the source's clock (a packet source's
+            // packets are stamped with the device frame times as they are read).
             qint64 presentAtUs = 0;
             if (live) {
                 qint64 srcUs = AV_NOPTS_VALUE;
-                if (packetSource) {
-                    qint64 t = 0;
-                    if (s->frameTime && s->frameTime(&t))
-                        srcUs = t;
-                } else if (frame->best_effort_timestamp != AV_NOPTS_VALUE) {
-                    srcUs = av_rescale_q(frame->best_effort_timestamp, stream->time_base,
-                                         AVRational{1, 1000000});
-                }
+                if (frame->best_effort_timestamp != AV_NOPTS_VALUE)
+                    srcUs = av_rescale_q(frame->best_effort_timestamp, stream->time_base, kMicros);
                 if (s->smoothing.load() && srcUs != static_cast<qint64>(AV_NOPTS_VALUE)) {
                     const qint64 nowUs = av_gettime_relative();
                     // Never reorder: a shrinking delay must not schedule a frame
@@ -823,26 +940,51 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
         }
     };
 
+    qint64 lastPacketUs = AV_NOPTS_VALUE; // packet sources: last device frame time
     Recorder recorder;
+    // Close the file, and stop the AudioFeed collecting audio for it.
+    auto closeRecorder = [&]() {
+        if (s->audio)
+            s->audio->setTap(false);
+        return recorder.finalize();
+    };
     // Opens/closes the recorder to match the requested state. Called each packet.
+    // Baichuan audio only shows up a moment after the video starts. A recording
+    // asked for before any arrived waits this long for it, so the file gets an
+    // audio track, then goes ahead video-only.
+    constexpr qint64 kRecordAudioWaitMs = 1500;
+    QElapsedTimer recordWait;
     auto syncRecording = [&]() {
         if (s->recordRequested.load() && !recorder.active()) {
+            adts::Header seen;
+            if (packetSource && s->audio && !s->audio->lastAdts(&seen)) {
+                if (!recordWait.isValid())
+                    recordWait.start();
+                if (!recordWait.hasExpired(kRecordAudioWaitMs))
+                    return;
+            }
+            recordWait.invalidate();
             QString path;
             {
                 QMutexLocker lock(&s->recMutex);
                 path = s->recPath;
             }
-            if (recorder.open(path, stream)) {
+            adts::Header tapAudio;
+            const bool tap = packetSource && s->audio && s->audio->lastAdts(&tapAudio);
+            if (recorder.open(path, stream, audioIndex >= 0 ? fmt->streams[audioIndex] : nullptr,
+                              tap ? &tapAudio : nullptr)) {
+                if (recorder.tapsAudio())
+                    s->audio->setTap(true);
                 s->recording.store(true);
                 postRecording(s, true, path, QString());
                 qCInfo(lcMedia) << redacted(source) << "recording to" << path;
             } else {
-                recorder.finalize();
+                closeRecorder();
                 s->recordRequested.store(false);
                 postRecording(s, false, QString(), QStringLiteral("could not open recording file"));
             }
         } else if (!s->recordRequested.load() && recorder.active()) {
-            const QString saved = recorder.finalize();
+            const QString saved = closeRecorder();
             s->recording.store(false);
             postRecording(s, false, saved, saved.isEmpty()
                                                ? QStringLiteral("no frames captured")
@@ -854,7 +996,7 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
     auto finalizeRecording = [&]() {
         if (!recorder.active())
             return;
-        const QString saved = recorder.finalize();
+        const QString saved = closeRecorder();
         s->recording.store(false);
         s->recordRequested.store(false);
         postRecording(s, false, saved,
@@ -884,6 +1026,8 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
             return !packetSource && (live || s->retryOnError.load());
         }
         if (packet->stream_index == audioIndex) {
+            if (recorder.active())
+                recorder.writeAudio(packet);
             s->audio->decodePacket(packet);
             av_packet_unref(packet);
             continue;
@@ -892,9 +1036,27 @@ bool runSession(const std::shared_ptr<Session> &s, bool *streamingOut)
             av_packet_unref(packet);
             continue;
         }
+        // A raw elementary stream has no timestamps: stamp each frame with the
+        // device's frame time as it is read, so smoothing and recordings run on
+        // the camera's clock (frames come out of the parser in the order the
+        // device sent them). Missing times continue at an assumed frame rate.
+        if (packetSource) {
+            qint64 us = 0;
+            if (s->frameTime && s->frameTime(&us))
+                lastPacketUs = us;
+            else if (lastPacketUs != static_cast<qint64>(AV_NOPTS_VALUE))
+                lastPacketUs += 40000;
+            if (lastPacketUs != static_cast<qint64>(AV_NOPTS_VALUE)) {
+                packet->pts = packet->dts = av_rescale_q(lastPacketUs, kMicros, stream->time_base);
+                packet->duration = 0;
+            }
+        }
         syncRecording();
-        if (recorder.active())
+        if (recorder.active()) {
             recorder.write(packet); // stream-copy before the packet is consumed
+            if (recorder.tapsAudio())
+                recorder.writeTap(s->audio->takeTap());
+        }
         rc = avcodec_send_packet(dec, packet);
         av_packet_unref(packet);
         if (rc < 0 && rc != AVERROR(EAGAIN))

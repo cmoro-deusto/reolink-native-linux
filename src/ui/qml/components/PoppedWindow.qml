@@ -17,6 +17,7 @@ Window {
     // Owner of the app-wide "one audible source" rule (Main's window): holds
     // the pop-out that is playing sound, if any.
     property var audioController: null
+    readonly property bool canTalk: deviceRow >= 0 && Devices.cameraInfo(deviceRow).capTalk === true
     readonly property bool audioOn: audioController !== null
                                     && audioController.audiblePopout === win
     function setAudio(on) {
@@ -124,6 +125,21 @@ Window {
                 onTapped: win.setAudio(!win.audioOn)
             }
         }
+
+        // Two-way talk, left of the speaker (or in its place when the stream
+        // has no audio): on hover, and kept up while talking.
+        TalkButton {
+            id: talkBtn
+            framed: true
+            size: Theme.px(34)
+            deviceRow: win.canTalk ? win.deviceRow : -1
+            visible: win.canTalk && player.state === StreamPlayer.Streaming
+                     && (winHover.hovered || talking)
+            anchors.bottom: parent.bottom
+            anchors.right: speaker.visible ? speaker.left : parent.right
+            anchors.bottomMargin: Theme.px(8)
+            anchors.rightMargin: Theme.px(8)
+        }
     }
     StreamPlayer {
         id: player
@@ -176,6 +192,8 @@ Window {
         bcReconnect.stop();
         if (win.audioOn)
             win.setAudio(false);
+        if (talkBtn.owner && talkBtn.talking)
+            Devices.stopTalk();
         player.stop();
     }
 
@@ -195,6 +213,7 @@ Window {
         Row {
             id: nmRow; anchors.centerIn: parent; spacing: Theme.px(6)
             Text { text: win.label; color: "white"; font.pixelSize: Theme.px(12) }
+            TalkBadge { deviceRow: win.deviceRow; fontSize: Theme.px(12) }
             Text {
                 visible: win.zoom > 1.01
                 text: win.zoom.toFixed(1) + "×"

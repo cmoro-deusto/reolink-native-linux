@@ -37,6 +37,10 @@ Item {
     // HD mode streams the full-resolution main stream over native Baichuan; off =
     // light sub-stream (FLV) scrubbing.
     property bool hdMode: false
+    // Playback sound: the single view's on/off, and in the grid the device row
+    // of the one audible pane (-1 = all muted). Playback always opens silent.
+    property bool soundOn: false
+    property int gridAudioRow: -1
 
     // ---- Synced multi-camera playback ---------------------------------------
     // Like the official client: up to 4 panes, one calendar and one timeline
@@ -701,7 +705,8 @@ Item {
                 // Retry on connection error: NVRs are connection-limited and may
                 // momentarily refuse the playback stream.
                 // Recorded playback is paced already; live smoothing doesn't apply.
-                StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true; smoothing: false }
+                StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true
+                               smoothing: false; muted: !page.soundOn }
 
                 Column {
                     anchors.centerIn: parent
@@ -785,6 +790,8 @@ Item {
                         dayEpoch: new Date(page.selYear, page.selMonth - 1,
                                            page.selDay, 0, 0, 0).getTime() / 1000
                         onStreamingChanged: page.countStreaming()
+                        audioOn: page.gridAudioRow === index
+                        onAudioToggled: (on) => page.gridAudioRow = on ? index : -1
                         onDoubleClicked: page.maximizedRow = isMax ? -1 : index
                         onCameraRequested: (row) => page.assignGridPane(slot, row)
                         onCameraDropped: (pane, row) => page.assignGridPane(pane, row)
@@ -868,6 +875,14 @@ Item {
                 Ctl { glyph: "⏹"; tip: qsTr("Stop")
                       onActivated: { page._suppressResume = true;
                                      player.stop(); page.stopAllPanes(); } }
+                // Sound for the single view (grid panes have their own button),
+                // once the recording turns out to carry audio.
+                Ctl {
+                    visible: page.paneCount === 1 && player.hasAudio
+                    glyph: page.soundOn ? "🔊" : "🔇"
+                    tip: page.soundOn ? qsTr("Mute") : qsTr("Listen")
+                    onActivated: page.soundOn = !page.soundOn
+                }
                 // Export: save a main-stream MP4 of the moment at the playhead.
                 // Single-pane only — it targets THE camera, and grid mode has four.
                 Rectangle {

@@ -25,6 +25,9 @@ Rectangle {
     property int viewRotation: 0
     property string label: ""
     property bool selected: false
+    // Sound: this pane is the audible one (the page keeps it to one pane).
+    property bool audioOn: false
+    signal audioToggled(bool on)
     // This camera's recordings for the selected day ({start,end,type} seconds).
     property var segments: []
     // Bound to the page's shared playhead — drives the "no footage" verdict.
@@ -151,7 +154,8 @@ Rectangle {
     // Retry on connection error: NVRs are connection-limited and may
     // momentarily refuse a playback stream while others are opening.
     // Recorded playback is paced already; live smoothing doesn't apply.
-    StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true; smoothing: false }
+    StreamPlayer { id: player; videoSink: video.videoSink; retryOnError: true
+                   smoothing: false; muted: !root.audioOn }
     Component.onDestruction: player.stop()
 
     // ---- Video with digital zoom (same interaction as a live pane) --------
@@ -327,6 +331,43 @@ Rectangle {
             contentItem: Text {
                 text: root.hdActive ? qsTr("Switch to SD (light scrubbing)")
                                     : qsTr("Switch to HD (full resolution)")
+                color: Theme.text
+                font.pixelSize: Theme.px(11)
+            }
+            background: Rectangle { color: Theme.surfaceAlt; border.color: Theme.border; radius: Theme.px(4) }
+        }
+    }
+
+    // Speaker toggle, bottom left: on hover, and kept up while audible.
+    Rectangle {
+        visible: player.hasAudio && root.streaming && (paneHover.hovered || root.audioOn)
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.margins: Theme.px(10)
+        width: Theme.px(32)
+        height: Theme.px(28)
+        radius: Theme.radius
+        color: root.audioOn ? Theme.accentDim : (soundHover.hovered ? Theme.surfaceAlt : "#cc0d141b")
+        border.color: Theme.border
+        z: 60
+        Text {
+            anchors.centerIn: parent
+            text: root.audioOn ? "🔊" : "🔇"
+            color: root.audioOn ? Theme.text : Theme.textMuted
+            font.pixelSize: Theme.px(14)
+        }
+        HoverHandler { id: soundHover }
+        TapHandler {
+            gesturePolicy: TapHandler.ReleaseWithinBounds
+            onTapped: root.audioToggled(!root.audioOn)
+        }
+        ToolTip {
+            visible: soundHover.hovered
+            delay: 500
+            x: (parent.width - width) / 2
+            y: -height - Theme.px(8)
+            contentItem: Text {
+                text: root.audioOn ? qsTr("Mute") : qsTr("Listen")
                 color: Theme.text
                 font.pixelSize: Theme.px(11)
             }

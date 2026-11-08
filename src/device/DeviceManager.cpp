@@ -17,6 +17,8 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QRegularExpression>
+#include <QAudioDevice>
+#include <QMediaDevices>
 #include <QSettings>
 #include <QSet>
 #include <QUrl>
@@ -139,10 +141,16 @@ void DeviceManager::startTalk(int row)
     p.username = e.rec.username;
     p.password = e.password;
     p.channel = e.channel;
-    m_talk = new TalkSession(p, this);
+    m_talk = new TalkSession(p, talkMicrophone().toUtf8(), this);
     m_talkRow = row;
     m_talkConnecting = true;
     TalkSession *session = m_talk;
+    connect(session, &TalkSession::levelChanged, this, [this, session](qreal level) {
+        if (session != m_talk || qFuzzyCompare(1 + m_talkLevel, 1 + level))
+            return;
+        m_talkLevel = level;
+        emit talkLevelChanged();
+    });
     connect(session, &TalkSession::stateChanged, this,
             [this, session](TalkSession::State state, const QString &error) {
                 if (session != m_talk)
@@ -182,7 +190,40 @@ void DeviceManager::stopTalk()
     m_talkConnecting = false;
     session->stop();
     session->deleteLater();
+    if (m_talkLevel != 0) {
+        m_talkLevel = 0;
+        emit talkLevelChanged();
+    }
     emit talkChanged();
+}
+
+QString DeviceManager::talkMicrophone() const
+{
+    return QSettings().value(QStringLiteral("talk/microphone")).toString();
+}
+
+void DeviceManager::setTalkMicrophone(const QString &id)
+{
+    if (id == talkMicrophone())
+        return;
+    QSettings().setValue(QStringLiteral("talk/microphone"), id);
+    emit talkMicrophoneChanged();
+    if (m_talk) { // pick it up now: the session captures from one device
+        const int row = m_talkRow;
+        stopTalk();
+        startTalk(row);
+    }
+}
+
+QVariantList DeviceManager::microphones() const
+{
+    QVariantList out;
+    const QByteArray def = QMediaDevices::defaultAudioInput().id();
+    for (const QAudioDevice &d : QMediaDevices::audioInputs())
+        out.append(QVariantMap{{QStringLiteral("id"), QString::fromUtf8(d.id())},
+                               {QStringLiteral("name"), d.description()},
+                               {QStringLiteral("isDefault"), d.id() == def}});
+    return out;
 }
 
 static constexpr int kBatteryRefreshSecs = 60;
@@ -1735,7 +1776,7 @@ void DeviceManager::startBaichuan(int row, qint64 startEpoch, StreamPlayer *play
     auto feed = player->prepareAudioFeed();
     p.onAudio = [feed](const BcMediaParser::AudioFrame &a) {
         if (a.codec == BcMediaParser::AudioCodec::AAC)
-            feed->pushAdts(a.data);
+            feed->pushAdts(a.data, a.videoUs);
     };
 
     auto client = std::make_shared<BaichuanClient>(p);

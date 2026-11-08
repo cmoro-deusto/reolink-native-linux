@@ -38,6 +38,10 @@ public:
     struct AudioFrame {
         AudioCodec codec = AudioCodec::AAC;
         QByteArray data; // AAC: one or more ADTS frames; ADPCM: the raw block
+        // Device time (µs, the video frames' clock) of the latest video frame
+        // when this audio arrived; -1 if unknown. Audio frames carry no
+        // timestamp of their own. Set by BaichuanClient, not the parser.
+        qint64 videoUs = -1;
     };
 
     // Called for each complete video frame, in stream order.
